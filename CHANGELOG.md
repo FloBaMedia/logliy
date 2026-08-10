@@ -2,6 +2,13 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.0.6] — 2026-08-10
+
+### Fixed
+- Turnstile/CAPTCHA is only enforced when the WP Login option is on **and** Turnstile is configured; sites without Captcha no longer see “Please complete the CAPTCHA…”
+- Login JS no longer treats orphan Turnstile DOM as a Captcha requirement
+- Advanced settings save broken by nested Import form; Save button also shown at top; active tab kept after save
+
 ## [0.0.5] — 2026-08-10
 
 ### Added

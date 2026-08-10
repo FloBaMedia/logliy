@@ -28,13 +28,6 @@
     return '';
   }
 
-  function turnstilePresent() {
-    return !!(
-      document.querySelector('.cf-turnstile') ||
-      document.querySelector('input[name="cf-turnstile-response"]')
-    );
-  }
-
   function resetTurnstile() {
     if (!window.turnstile || typeof window.turnstile.reset !== 'function') return;
     try {
@@ -51,11 +44,15 @@
     });
   }
 
+  /**
+   * Only block when the server says Captcha is required (configured Turnstile).
+   * Orphan DOM must not invent a Captcha requirement.
+   */
   function ensureCaptcha() {
-    if (cfg.turnstileRequired || turnstilePresent()) {
-      return !!getTurnstileToken();
+    if (!cfg.turnstileRequired) {
+      return true;
     }
-    return true;
+    return !!getTurnstileToken();
   }
 
   function friendlyWebAuthnError(err) {
@@ -360,7 +357,7 @@
 
     (async function () {
       try {
-        if (cfg.turnstileRequired || turnstilePresent()) {
+        if (cfg.turnstileRequired) {
           if (!getTurnstileToken()) {
             // Don't leave a pending get without captcha; allow retry on next focus.
             conditionalStarted = false;

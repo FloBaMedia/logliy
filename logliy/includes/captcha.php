@@ -5,21 +5,45 @@
  * Simple Cloudflare Turnstile skips REST_REQUEST on the authenticate filter,
  * so Passkey/OTP must verify the token explicitly.
  *
+ * Captcha is only enforced when Turnstile is enabled for WP login *and*
+ * actually configured (keys / plugin helpers available). Sites without
+ * Captcha are never blocked.
+ *
  * @package Logliy
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Whether Turnstile keys / helpers are available for verification.
+ */
+function logliy_turnstile_is_configured(): bool {
+	$has_secret = logliy_turnstile_secret() !== '';
+	$has_site   = logliy_turnstile_site_key() !== '';
+
+	// Plugin active with its checker — treat as usable when at least one key exists.
+	if ( function_exists( 'cfturnstile_check' ) ) {
+		return $has_secret || $has_site;
+	}
+
+	// Standalone / constants: need both to show a widget and verify.
+	return $has_secret && $has_site;
+}
+
+/**
  * Whether a Cloudflare Turnstile login challenge is expected.
+ *
+ * Requires the Simple Cloudflare Turnstile "WP Login" option *and* a
+ * configured Turnstile setup. A leftover option after uninstalling the
+ * Captcha plugin must not block Logliy logins.
  */
 function logliy_turnstile_required(): bool {
-	$required = (bool) get_option( 'cfturnstile_login' );
+	$required = (bool) get_option( 'cfturnstile_login' ) && logliy_turnstile_is_configured();
 
 	/**
 	 * Filter whether Logliy must verify a Turnstile token on passwordless login.
 	 *
-	 * @param bool $required Default: Simple Cloudflare Turnstile "WP Login" option.
+	 * @param bool $required Default: Turnstile WP Login option + configured keys.
 	 */
 	return (bool) apply_filters( 'logliy_turnstile_required', $required );
 }
@@ -124,14 +148,15 @@ function logliy_turnstile_siteverify( string $token ) {
 /**
  * Verify Turnstile token. Returns true|WP_Error.
  *
- * - If a token is present and a secret is available, it is always verified (reject forged tokens).
- * - If Turnstile is required for login and no token is present, the request fails.
+ * - No Captcha configured → always allow.
+ * - Token present + verifiable → always verify (reject forged tokens).
+ * - Captcha required and no token → fail.
  *
  * @param string $token Token from the browser widget.
  * @return true|WP_Error
  */
 function logliy_verify_turnstile( string $token ) {
-	$required = logliy_turnstile_required();
+	$required   = logliy_turnstile_required();
 	$can_verify = logliy_turnstile_secret() !== '' || function_exists( 'cfturnstile_check' );
 
 	// Token submitted: always verify when possible (do not accept junk tokens).
@@ -151,5 +176,6 @@ function logliy_verify_turnstile( string $token ) {
 		);
 	}
 
-	return logliy_turnstile_siteverify( $token );
+	// Required but somehow not verifiable — do not lock users out.
+	return true;
 }
