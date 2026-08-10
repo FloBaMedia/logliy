@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Logliy - Login Protect (Passkey, Email Code)
- * Plugin URI:        https://www.floba-media.de
+ * Plugin URI:        https://github.com/FloBaMedia/wp-loginprotect
  * Description:       Passwordless WordPress login with Passkeys and Email OTP. Optional password fallback.
  * Version:           0.0.5
  * Requires at least: 6.4
