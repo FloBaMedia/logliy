@@ -38,6 +38,74 @@ function logliy_register_settings(): void {
 }
 
 /**
+ * Keep the active settings tab after options.php redirects.
+ *
+ * @param string $location Redirect URL.
+ * @return string
+ */
+add_filter( 'wp_redirect', 'logliy_settings_keep_tab_redirect' );
+function logliy_settings_keep_tab_redirect( string $location ): string {
+	if ( ! is_admin() ) {
+		return $location;
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- only reading our own hidden field after options.php nonce already passed.
+	if ( empty( $_POST['logliy_active_tab'] ) || empty( $_POST['option_page'] ) || (string) $_POST['option_page'] !== 'logliy_group' ) {
+		return $location;
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	$tab = sanitize_key( (string) wp_unslash( $_POST['logliy_active_tab'] ) );
+	$allowed = array( 'general', 'redirects', 'passkeys', 'email_otp', 'woocommerce', 'users', 'advanced' );
+	if ( ! in_array( $tab, $allowed, true ) ) {
+		return $location;
+	}
+	return add_query_arg( 'tab', $tab, $location );
+}
+
+/**
+ * Primary save button markup (top + bottom of settings form).
+ *
+ * @param string $extra_class Optional extra CSS class(es).
+ */
+function logliy_render_save_button( string $extra_class = '' ): void {
+	$class = trim( 'button button-primary lg-save-btn ' . $extra_class );
+	printf(
+		'<p class="lg-save-row"><button type="submit" class="%1$s">%2$s</button></p>',
+		esc_attr( $class ),
+		esc_html__( 'Save settings', 'logliy' )
+	);
+}
+
+/**
+ * Import / Export card (own form — must not nest inside the settings form).
+ */
+function logliy_render_import_export_card(): void {
+	?>
+	<div class="lg-card">
+		<h2><?php echo esc_html__( 'Import / Export', 'logliy' ); ?></h2>
+		<p class="description"><?php echo esc_html__( 'Copy Logliy settings to another WordPress site. Passkeys and user data are not included. Logo / background images and Relying Party ID are reset (site-specific).', 'logliy' ); ?></p>
+		<p>
+			<a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=logliy_export_settings' ), 'logliy_export_settings' ) ); ?>">
+				<?php echo esc_html__( 'Export settings (JSON)', 'logliy' ); ?>
+			</a>
+		</p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="lg-import-form">
+			<?php wp_nonce_field( 'logliy_import_settings' ); ?>
+			<input type="hidden" name="action" value="logliy_import_settings" />
+			<p>
+				<label for="logliy_import_file" class="screen-reader-text"><?php echo esc_html__( 'Settings JSON file', 'logliy' ); ?></label>
+				<input type="file" name="logliy_import_file" id="logliy_import_file" accept="application/json,.json" required />
+			</p>
+			<p>
+				<button type="submit" class="button button-secondary" onclick="return confirm('<?php echo esc_js( __( 'Replace all Logliy settings on this site with the import file? This overwrites branding, custom CSS, redirects, and security options. Only import files you trust.', 'logliy' ) ); ?>');">
+					<?php echo esc_html__( 'Import settings', 'logliy' ); ?>
+				</button>
+			</p>
+		</form>
+	</div>
+	<?php
+}
+
+/**
  * Admin styles / scripts.
  *
  * @param string $hook Hook.
@@ -244,6 +312,8 @@ function logliy_settings_page(): void {
 			<?php endforeach; ?>
 		</nav>
 
+		<?php settings_errors(); ?>
+
 		<?php if ( $tab === 'users' ) : ?>
 			<?php logliy_render_users_overview(); ?>
 			<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media.', 'logliy' ); ?></p>
@@ -256,6 +326,8 @@ function logliy_settings_page(): void {
 		<form method="post" action="options.php" class="lg-form">
 			<?php settings_fields( 'logliy_group' ); ?>
 			<input type="hidden" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[_logliy_form]" value="1" />
+			<input type="hidden" name="logliy_active_tab" value="<?php echo esc_attr( $tab ); ?>" />
+			<?php logliy_render_save_button( 'lg-save-btn--top' ); ?>
 
 			<?php if ( $tab === 'general' ) : ?>
 			<div class="lg-card">
@@ -685,28 +757,6 @@ function logliy_settings_page(): void {
 				</table>
 			</div>
 			<div class="lg-card">
-				<h2><?php echo esc_html__( 'Import / Export', 'logliy' ); ?></h2>
-				<p class="description"><?php echo esc_html__( 'Copy Logliy settings to another WordPress site. Passkeys and user data are not included. Logo / background images and Relying Party ID are reset (site-specific).', 'logliy' ); ?></p>
-				<p>
-					<a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=logliy_export_settings' ), 'logliy_export_settings' ) ); ?>">
-						<?php echo esc_html__( 'Export settings (JSON)', 'logliy' ); ?>
-					</a>
-				</p>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" style="margin-top:1em;">
-					<?php wp_nonce_field( 'logliy_import_settings' ); ?>
-					<input type="hidden" name="action" value="logliy_import_settings" />
-					<p>
-						<label for="logliy_import_file" class="screen-reader-text"><?php echo esc_html__( 'Settings JSON file', 'logliy' ); ?></label>
-						<input type="file" name="logliy_import_file" id="logliy_import_file" accept="application/json,.json" required />
-					</p>
-					<p>
-						<button type="submit" class="button button-secondary" onclick="return confirm('<?php echo esc_js( __( 'Replace all Logliy settings on this site with the import file? This overwrites branding, custom CSS, redirects, and security options. Only import files you trust.', 'logliy' ) ); ?>');">
-							<?php echo esc_html__( 'Import settings', 'logliy' ); ?>
-						</button>
-					</p>
-				</form>
-			</div>
-			<div class="lg-card">
 				<h2><?php echo esc_html__( 'Environment', 'logliy' ); ?></h2>
 				<ul class="lg-checks">
 					<?php foreach ( logliy_environment_checks() as $check ) : ?>
@@ -760,8 +810,12 @@ function logliy_settings_page(): void {
 			}
 			?>
 
-			<p><button type="submit" class="button button-primary lg-save-btn"><?php echo esc_html__( 'Save settings', 'logliy' ); ?></button></p>
+			<?php logliy_render_save_button( 'lg-save-btn--bottom' ); ?>
 		</form>
+
+		<?php if ( $tab === 'advanced' ) : ?>
+			<?php logliy_render_import_export_card(); ?>
+		<?php endif; ?>
 
 		<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media.', 'logliy' ); ?></p>
 	</div>

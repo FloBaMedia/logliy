@@ -163,8 +163,20 @@
   color: #991b1b;
 }
 
+.lg-save-row {
+  margin: 0 0 16px;
+}
+
 .lg-save-btn {
+  margin-top: 0 !important;
+}
+
+.lg-save-btn--bottom {
   margin-top: 4px !important;
+}
+
+.lg-import-form {
+  margin-top: 1em;
 }
 
 .lg-footer {
