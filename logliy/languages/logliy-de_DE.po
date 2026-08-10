@@ -1,0 +1,679 @@
+# Copyright (C) 2026 FloBa Media
+# This file is distributed under the same license as the Logliy plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Logliy 0.0.1\n"
+"Report-Msgid-Bugs-To: https://www.floba-media.de\n"
+"POT-Creation-Date: 2026-08-09 00:00+0000\n"
+"PO-Revision-Date: 2026-08-09 00:00+0000\n"
+"Last-Translator: FloBa Media\n"
+"Language-Team: German\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Password login is disabled. Use a Passkey or Email code instead."
+msgstr "Passwort-Anmeldung ist deaktiviert. Nutzen Sie einen Passkey oder E-Mail-Code."
+
+msgid "Password login is disabled for this account. Use a Passkey or Email code instead."
+msgstr "Passwort-Anmeldung ist für dieses Konto deaktiviert. Nutzen Sie einen Passkey oder E-Mail-Code."
+
+msgid "Please enter your email or username."
+msgstr "Bitte geben Sie Ihre E-Mail-Adresse oder Ihren Benutzernamen ein."
+
+msgid "If an account exists, a login code has been sent."
+msgstr "Falls ein Konto existiert, wurde ein Anmeldecode gesendet."
+
+msgid "Email code login is disabled."
+msgstr "Anmeldung per E-Mail-Code ist deaktiviert."
+
+msgid "Too many attempts. Please wait and try again."
+msgstr "Zu viele Versuche. Bitte warten Sie und versuchen Sie es erneut."
+
+msgid "Your login code for %s"
+msgstr "Ihr Anmeldecode für %s"
+
+msgid "Hi %1$s,\n\nYour login code for %2$s is:\n\n%3$s\n\nThis code expires in %4$d minutes. If you did not request it, you can ignore this email.\n\n— Logliy"
+msgstr "Hallo %1$s,\n\nIhr Anmeldecode für %2$s lautet:\n\n%3$s\n\nDieser Code ist %4$d Minuten gültig. Wenn Sie ihn nicht angefordert haben, können Sie diese E-Mail ignorieren.\n\n— Logliy"
+
+msgid "Could not send the login email. Please contact the site admin."
+msgstr "Die Anmelde-E-Mail konnte nicht gesendet werden. Bitte kontaktieren Sie den Administrator."
+
+msgid "Please enter the code from your email."
+msgstr "Bitte geben Sie den Code aus Ihrer E-Mail ein."
+
+msgid "Invalid login code."
+msgstr "Ungültiger Anmeldecode."
+
+msgid "Login code expired. Please request a new one."
+msgstr "Anmeldecode abgelaufen. Bitte fordern Sie einen neuen an."
+
+msgid "Too many invalid code attempts."
+msgstr "Zu viele ungültige Code-Versuche."
+
+msgid "Too many invalid code attempts. Please request a new code."
+msgstr "Zu viele ungültige Code-Versuche. Bitte fordern Sie einen neuen Code an."
+
+msgid "Authentication failed."
+msgstr "Authentifizierung fehlgeschlagen."
+
+msgid "Passkey"
+msgstr "Passkey"
+
+msgid "Email code"
+msgstr "E-Mail-Code"
+
+msgid "Password"
+msgstr "Passwort"
+
+msgid "Send code"
+msgstr "Code senden"
+
+msgid "Sign in"
+msgstr "Anmelden"
+
+msgid "Sign in with Passkey"
+msgstr "Mit Passkey anmelden"
+
+msgid "Email or username"
+msgstr "E-Mail oder Benutzername"
+
+msgid "6-digit code"
+msgstr "6-stelliger Code"
+
+msgid "Remember me"
+msgstr "Angemeldet bleiben"
+
+msgid "Please wait…"
+msgstr "Bitte warten…"
+
+msgid "Passkey sign-in failed or was cancelled."
+msgstr "Passkey-Anmeldung fehlgeschlagen oder abgebrochen."
+
+msgid "Passkey is busy — please try again."
+msgstr "Passkey ist noch beschäftigt — bitte erneut versuchen."
+
+msgid "Check your email for a login code."
+msgstr "Prüfen Sie Ihre E-Mail auf einen Anmeldecode."
+
+msgid "Something went wrong. Please try again."
+msgstr "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+
+msgid "Sign in with a Passkey or Email code."
+msgstr "Melden Sie sich mit einem Passkey oder E-Mail-Code an."
+
+msgid "Email or username (optional)"
+msgstr "E-Mail oder Benutzername (optional)"
+
+msgid "Login code"
+msgstr "Anmeldecode"
+
+msgid "Resend code"
+msgstr "Code erneut senden"
+
+msgid "Use the password fields below."
+msgstr "Nutzen Sie die Passwortfelder unten."
+
+msgid "Logliy – LoginProtect"
+msgstr "Logliy – LoginProtect"
+
+msgid "Password login"
+msgstr "Passwort-Anmeldung"
+
+msgid "Allow password login for this user"
+msgstr "Passwort-Anmeldung für diesen Benutzer erlauben"
+
+msgid "Password login is allowed for your account."
+msgstr "Passwort-Anmeldung ist für Ihr Konto erlaubt."
+
+msgid "Password login is disabled for your account."
+msgstr "Passwort-Anmeldung ist für Ihr Konto deaktiviert."
+
+msgid "Passkeys"
+msgstr "Passkeys"
+
+msgid "No Passkeys registered yet."
+msgstr "Noch keine Passkeys registriert."
+
+msgid "Added %s"
+msgstr "Hinzugefügt %s"
+
+msgid "Rename"
+msgstr "Umbenennen"
+
+msgid "Remove"
+msgstr "Entfernen"
+
+msgid "Register Passkey"
+msgstr "Passkey registrieren"
+
+msgid "Passkeys require HTTPS and a compatible browser/device."
+msgstr "Passkeys erfordern HTTPS und einen kompatiblen Browser/Gerät."
+
+msgid "Logliy"
+msgstr "Logliy"
+
+msgid "General"
+msgstr "Allgemein"
+
+msgid "Email OTP"
+msgstr "E-Mail-OTP"
+
+msgid "WooCommerce"
+msgstr "WooCommerce"
+
+msgid "Advanced"
+msgstr "Erweitert"
+
+msgid "Passwordless login with Passkeys and Email codes. Use Wordfence for WAF and brute-force protection."
+msgstr "Passwortlose Anmeldung mit Passkeys und E-Mail-Codes. Nutzen Sie Wordfence für WAF und Brute-Force-Schutz."
+
+msgid "Authentication methods"
+msgstr "Anmeldemethoden"
+
+msgid "Allow password login"
+msgstr "Passwort-Anmeldung erlauben"
+
+msgid "Off by default. Emergency override: define( 'LOGLIY_ALLOW_PASSWORD', true ); in wp-config.php."
+msgstr "Standardmäßig aus. Notfall-Override: define( 'LOGLIY_ALLOW_PASSWORD', true ); in wp-config.php."
+
+msgid "Password roles"
+msgstr "Passwort-Rollen"
+
+msgid "If password login is enabled and no roles are checked, all roles may use passwords. If password login is off, checked roles are still allowed."
+msgstr "Wenn Passwort-Anmeldung aktiv ist und keine Rollen gewählt sind, dürfen alle Rollen Passwörter nutzen. Wenn sie aus ist, bleiben gewählte Rollen erlaubt."
+
+msgid "Hide WP password fields"
+msgstr "WP-Passwortfelder ausblenden"
+
+msgid "Dismiss onboarding"
+msgstr "Einführung ausblenden"
+
+msgid "Hides the setup banner. It also disappears automatically once HTTPS, libraries and your Passkey are ready."
+msgstr "Blendet den Einrichtungs-Banner aus. Er verschwindet auch automatisch, sobald HTTPS, Bibliotheken und Ihr Passkey bereit sind."
+
+msgid "Dismiss this notice"
+msgstr "Diesen Hinweis ausblenden"
+
+msgid "You have at least one Passkey registered."
+msgstr "Sie haben mindestens einen Passkey registriert."
+
+msgid "Register a Passkey on your profile so you can sign in without a password."
+msgstr "Registrieren Sie einen Passkey in Ihrem Profil, damit Sie sich ohne Passwort anmelden können."
+
+msgid "Login page"
+msgstr "Anmeldeseite"
+
+msgid "Auto Remember Me"
+msgstr "Auto „Angemeldet bleiben“"
+
+msgid "Keep remember me option always checked on login page."
+msgstr "„Angemeldet bleiben“ auf der Anmeldeseite standardmäßig aktivieren."
+
+msgid "Login Order"
+msgstr "Anmelde-Kennung"
+
+msgid "Both Username Or Email Address"
+msgstr "Benutzername oder E-Mail-Adresse"
+
+msgid "Only Username"
+msgstr "Nur Benutzername"
+
+msgid "Only Email Address"
+msgstr "Nur E-Mail-Adresse"
+
+msgid "Enable users to login using their username or email address."
+msgstr "Legen Sie fest, ob Benutzer sich mit Benutzername und/oder E-Mail anmelden können."
+
+msgid "Language Switcher"
+msgstr "Sprachumschalter"
+
+msgid "Remove Language Switcher Dropdown On Login Page."
+msgstr "Sprachumschalter-Dropdown auf der Anmeldeseite entfernen."
+
+msgid "Delete All Settings"
+msgstr "Alle Einstellungen löschen"
+
+msgid "Enable this option to delete every settings of this plugin on uninstall."
+msgstr "Aktivieren, um beim Deinstallieren alle Einstellungen und Daten dieses Plugins zu löschen."
+
+msgid "Email address"
+msgstr "E-Mail-Adresse"
+
+msgid "Username"
+msgstr "Benutzername"
+
+msgid "%s (optional)"
+msgstr "%s (optional)"
+
+msgid "Please enter your email address."
+msgstr "Bitte geben Sie Ihre E-Mail-Adresse ein."
+
+msgid "Please enter your username."
+msgstr "Bitte geben Sie Ihren Benutzernamen ein."
+
+msgid "Passkey options"
+msgstr "Passkey-Optionen"
+
+msgid "User verification"
+msgstr "Benutzerverifizierung"
+
+msgid "Required"
+msgstr "Erforderlich"
+
+msgid "Preferred"
+msgstr "Bevorzugt"
+
+msgid "Discouraged"
+msgstr "Nicht empfohlen"
+
+msgid "Discoverable credential"
+msgstr "Anmeldung ohne Benutzername"
+
+msgid "Required enables usernameless / Conditional UI Passkeys."
+msgstr "Empfohlen: Passkey wird auf dem Gerät gespeichert, Anmeldung ohne E-Mail/Benutzername möglich."
+
+msgid "Email code settings"
+msgstr "E-Mail-Code-Einstellungen"
+
+msgid "Code lifetime (minutes)"
+msgstr "Code-Gültigkeit (Minuten)"
+
+msgid "Code length"
+msgstr "Code-Länge"
+
+msgid "Max requests / account"
+msgstr "Max. Anfragen / Konto"
+
+msgid "Max requests / IP"
+msgstr "Max. Anfragen / IP"
+
+msgid "Rate-limit window (minutes)"
+msgstr "Rate-Limit-Fenster (Minuten)"
+
+msgid "My Account login"
+msgstr "Mein-Konto-Anmeldung"
+
+msgid "Checkout login"
+msgstr "Checkout-Anmeldung"
+
+msgid "Classic templates only in v1. Guest checkout is unchanged. Block checkout is a follow-up."
+msgstr "In v1 nur klassische Templates. Gast-Checkout bleibt unverändert. Block-Checkout folgt später."
+
+msgid "Relying Party ID"
+msgstr "Relying-Party-ID"
+
+msgid "Usually your site hostname. Leave empty to use the site host automatically."
+msgstr "Üblicherweise der Hostname Ihrer Website. Leer lassen für automatische Erkennung."
+
+msgid "Relying Party name"
+msgstr "Relying-Party-Name"
+
+msgid "Related origins (stub)"
+msgstr "Related Origins (Stub)"
+
+msgid "Optional extra allowed origins (one per line). Full Related Origins / multi-domain support comes later."
+msgstr "Optionale zusätzliche erlaubte Origins (eine pro Zeile). Vollständige Related-Origins-/Multi-Domain-Unterstützung folgt später."
+
+msgid "Environment"
+msgstr "Umgebung"
+
+msgid "Save settings"
+msgstr "Einstellungen speichern"
+
+msgid "Logliy by FloBa Media — complements Wordfence, does not replace it."
+msgstr "Logliy von FloBa Media — ergänzt Wordfence, ersetzt es nicht."
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Logliy setup"
+msgstr "Logliy-Einrichtung"
+
+msgid "Password login is off by default. Register a Passkey on your profile or confirm Email OTP works before locking yourself out."
+msgstr "Passwort-Anmeldung ist standardmäßig aus. Registrieren Sie einen Passkey in Ihrem Profil oder prüfen Sie E-Mail-OTP, bevor Sie sich aussperren."
+
+msgid "Open your profile"
+msgstr "Profil öffnen"
+
+msgid "HTTPS is available (required for Passkeys)."
+msgstr "HTTPS ist verfügbar (für Passkeys erforderlich)."
+
+msgid "HTTPS is missing — Passkeys will not work in production."
+msgstr "HTTPS fehlt — Passkeys funktionieren in Produktion nicht."
+
+msgid "WebAuthn library loaded."
+msgstr "WebAuthn-Bibliothek geladen."
+
+msgid "WebAuthn vendor library missing — run Composer install."
+msgstr "WebAuthn-Vendor-Bibliothek fehlt — Composer install ausführen."
+
+msgid "PHP crypto extensions look OK."
+msgstr "PHP-Krypto-Erweiterungen sehen in Ordnung aus."
+
+msgid "Install openssl and gmp/bcmath/sodium for WebAuthn."
+msgstr "Installieren Sie openssl und gmp/bcmath/sodium für WebAuthn."
+
+msgid "wp_mail is available for Email OTP (verify delivery with a test)."
+msgstr "wp_mail ist für E-Mail-OTP verfügbar (Zustellung mit einem Test prüfen)."
+
+msgid "Logliy works alongside Wordfence: keep Wordfence for WAF, brute-force lockouts, CAPTCHA, and TOTP. Logliy handles Passkey / Email OTP login methods. Failed Logliy attempts still fire wp_login_failed for Wordfence lockouts."
+msgstr "Logliy arbeitet mit Wordfence zusammen: Wordfence für WAF, Brute-Force-Sperren, CAPTCHA und TOTP behalten. Logliy steuert Passkey-/E-Mail-OTP-Methoden. Fehlgeschlagene Logliy-Versuche feuern weiterhin wp_login_failed für Wordfence-Sperren."
+
+msgid "Dismiss"
+msgstr "Schließen"
+
+msgid "You must be logged in."
+msgstr "Sie müssen angemeldet sein."
+
+msgid "Name is required."
+msgstr "Name ist erforderlich."
+
+msgid "Passkey not found."
+msgstr "Passkey nicht gefunden."
+
+msgid "Invalid Passkey response."
+msgstr "Ungültige Passkey-Antwort."
+
+msgid "Passkeys are disabled."
+msgstr "Passkeys sind deaktiviert."
+
+msgid "HTTPS is required for Passkeys."
+msgstr "HTTPS ist für Passkeys erforderlich."
+
+msgid "Passkey library is not available."
+msgstr "Passkey-Bibliothek ist nicht verfügbar."
+
+msgid "Could not build Passkey options."
+msgstr "Passkey-Optionen konnten nicht erstellt werden."
+
+msgid "Passkey challenge expired. Please try again."
+msgstr "Passkey-Challenge abgelaufen. Bitte erneut versuchen."
+
+msgid "Invalid Passkey attestation response."
+msgstr "Ungültige Passkey-Attestation-Antwort."
+
+msgid "Passkey registration failed."
+msgstr "Passkey-Registrierung fehlgeschlagen."
+
+msgid "This Passkey is already registered."
+msgstr "Dieser Passkey ist bereits registriert."
+
+msgid "Could not store Passkey."
+msgstr "Passkey konnte nicht gespeichert werden."
+
+msgid "Passkey challenge expired."
+msgstr "Passkey-Challenge abgelaufen."
+
+msgid "Invalid Passkey assertion."
+msgstr "Ungültige Passkey-Assertion."
+
+msgid "Invalid Passkey assertion response."
+msgstr "Ungültige Passkey-Assertion-Antwort."
+
+msgid "Unknown Passkey."
+msgstr "Unbekannter Passkey."
+
+msgid "Unknown user."
+msgstr "Unbekannter Benutzer."
+
+msgid "Unknown user for this Passkey."
+msgstr "Unbekannter Benutzer für diesen Passkey."
+
+msgid "Passkey verification failed."
+msgstr "Passkey-Verifizierung fehlgeschlagen."
+
+msgid "Passkey saved."
+msgstr "Passkey gespeichert."
+
+msgid "Passkey registration failed or was cancelled."
+msgstr "Passkey-Registrierung fehlgeschlagen oder abgebrochen."
+
+msgid "Remove this Passkey?"
+msgstr "Diesen Passkey entfernen?"
+
+msgid "Sign-in without username"
+msgstr "Anmeldung ohne Benutzername"
+
+msgid "Yes — save Passkey on the device"
+msgstr "Ja — Passkey auf dem Gerät speichern"
+
+msgid "Preferred (if the device supports it)"
+msgstr "Bevorzugt (falls das Gerät es unterstützt)"
+
+msgid "No — require username first"
+msgstr "Nein — zuerst Benutzername erforderlich"
+
+msgid "When enabled, browsers can offer the Passkey automatically (no email/username needed). Recommended for most sites."
+msgstr "Wenn aktiv, kann der Browser den Passkey automatisch anbieten (ohne E-Mail/Benutzername). Für die meisten Websites empfohlen."
+
+msgid "Login branding"
+msgstr "Login-Branding"
+
+msgid "Brand name"
+msgstr "Markenname"
+
+msgid "Shown on the login panel. Leave empty for the default Logliy name."
+msgstr "Wird im Login-Panel angezeigt. Leer lassen für den Standardnamen Logliy."
+
+msgid "Tagline"
+msgstr "Unterzeile"
+
+msgid "Logo"
+msgstr "Logo"
+
+msgid "Select logo"
+msgstr "Logo auswählen"
+
+msgid "Optional. Replaces the default shield icon on the login panel."
+msgstr "Optional. Ersetzt das Standard-Schild-Icon im Login-Panel."
+
+msgid "You do not have a Passkey yet. Administrators should register one so they can still sign in when password login is disabled."
+msgstr "Sie haben noch keinen Passkey. Administratoren sollten einen registrieren, damit die Anmeldung auch ohne Passwort möglich bleibt."
+
+msgid "Add a Passkey"
+msgstr "Passkey hinzufügen"
+
+
+msgid "CAPTCHA verification failed. Please try again."
+msgstr "CAPTCHA-Prüfung fehlgeschlagen. Bitte erneut versuchen."
+
+msgid "CAPTCHA is required but could not be verified. Please contact the site admin."
+msgstr "CAPTCHA ist erforderlich, konnte aber nicht geprüft werden. Bitte den Administrator kontaktieren."
+
+msgid "Magic link"
+msgstr "Magic Link"
+
+msgid "Send magic link"
+msgstr "Magic Link senden"
+
+msgid "Check your email for a magic login link."
+msgstr "Prüfen Sie Ihre E-Mail auf einen Magic-Login-Link."
+
+msgid "We will email you a one-time link to sign in."
+msgstr "Wir senden Ihnen einen einmaligen Link zur Anmeldung per E-Mail."
+
+msgid "One-click sign-in link sent by email."
+msgstr "Ein-Klick-Anmeldelink per E-Mail."
+
+msgid "If an account exists, a magic login link has been sent."
+msgstr "Falls ein Konto existiert, wurde ein Magic-Login-Link gesendet."
+
+msgid "Magic link login is disabled."
+msgstr "Anmeldung per Magic Link ist deaktiviert."
+
+msgid "Your login link for %s"
+msgstr "Ihr Anmeldelink für %s"
+
+msgid "Magic link invalid or expired."
+msgstr "Magic Link ungültig oder abgelaufen."
+
+msgid "Magic link invalid or expired. Please request a new one."
+msgstr "Magic Link ungültig oder abgelaufen. Bitte fordern Sie einen neuen an."
+
+msgid "Redirects"
+msgstr "Weiterleitungen"
+
+msgid "Users"
+msgstr "Benutzer"
+
+msgid "After login"
+msgstr "Nach dem Login"
+
+msgid "After logout"
+msgstr "Nach dem Logout"
+
+msgid "Default redirect"
+msgstr "Standard-Weiterleitung"
+
+msgid "Used when no role-specific URL is set. Leave empty for WordPress default."
+msgstr "Gilt, wenn keine rollenspezifische URL gesetzt ist. Leer = WordPress-Standard."
+
+msgid "Users overview"
+msgstr "Benutzerübersicht"
+
+msgid "Search users…"
+msgstr "Benutzer suchen…"
+
+msgid "Search"
+msgstr "Suchen"
+
+msgid "User"
+msgstr "Benutzer"
+
+msgid "Email"
+msgstr "E-Mail"
+
+msgid "Last login"
+msgstr "Letzter Login"
+
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgid "No users found."
+msgstr "Keine Benutzer gefunden."
+
+msgid "Custom login URL"
+msgstr "Benutzerdefinierte Login-URL"
+
+msgid "Enable custom login URL"
+msgstr "Benutzerdefinierte Login-URL aktivieren"
+
+msgid "Login slug"
+msgstr "Login-Slug"
+
+msgid "Current login URL:"
+msgstr "Aktuelle Login-URL:"
+
+msgid "Hides /wp-login.php and serves login under your custom slug. Deactivates automatically if WPS Hide Login (or similar) is active."
+msgstr "Versteckt /wp-login.php und stellt den Login unter Ihrem Slug bereit. Deaktiviert sich automatisch, wenn WPS Hide Login (o. Ä.) aktiv ist."
+
+msgid "Logliy custom login URL is disabled because %s is active. Use that plugin’s login URL instead."
+msgstr "Die Logliy-Login-URL ist deaktiviert, weil %s aktiv ist. Nutzen Sie die Login-URL dieses Plugins."
+
+msgid "Disabled while %s is active — that plugin already hides wp-login.php."
+msgstr "Deaktiviert, solange %s aktiv ist — dieses Plugin versteckt bereits wp-login.php."
+
+msgid "Sessions"
+msgstr "Sitzungen"
+
+msgid "Session length (hours)"
+msgstr "Sitzungsdauer (Stunden)"
+
+msgid "Without “Remember me”. WordPress default is 48 hours."
+msgstr "Ohne „Angemeldet bleiben“. WordPress-Standard: 48 Stunden."
+
+msgid "Remember me (days)"
+msgstr "Angemeldet bleiben (Tage)"
+
+msgid "Admin idle timeout (minutes)"
+msgstr "Admin-Idle-Timeout (Minuten)"
+
+msgid "0 = off. Logs out users with manage_options after idle time."
+msgstr "0 = aus. Meldet Benutzer mit manage_options nach Idle-Zeit ab."
+
+msgid "Logliy sessions"
+msgstr "Logliy-Sitzungen"
+
+msgid "Logout everywhere"
+msgstr "Überall abmelden"
+
+msgid "Sign out of all sessions"
+msgstr "Von allen Sitzungen abmelden"
+
+msgid "Ends every session for your account on all devices (including this one)."
+msgstr "Beendet jede Sitzung Ihres Kontos auf allen Geräten (inklusive dieser)."
+
+msgid "Unknown"
+msgstr "Unbekannt"
+
+msgid "Hide “Back to site”"
+msgstr "„Zurück zur Website“ ausblenden"
+
+msgid "Hide lost password link"
+msgstr "„Passwort vergessen“-Link ausblenden"
+
+msgid "Background color"
+msgstr "Hintergrundfarbe"
+
+msgid "Background image"
+msgstr "Hintergrundbild"
+
+msgid "Select background"
+msgstr "Hintergrund wählen"
+
+msgid "Login footer"
+msgstr "Login-Footer"
+
+msgid "Imprint · Privacy"
+msgstr "Impressum · Datenschutz"
+
+msgid "Optional text or HTML shown below the login form (links allowed)."
+msgstr "Optionaler Text oder HTML unter dem Loginformular (Links erlaubt)."
+
+msgid "Custom CSS"
+msgstr "Eigenes CSS"
+
+msgid "Applied only on the WordPress login page."
+msgstr "Gilt nur auf der WordPress-Anmeldeseite."
+
+msgid "Block checkout / account"
+msgstr "Block-Checkout / Konto"
+
+msgid "Show Logliy above WooCommerce Checkout and Customer Account blocks for guests."
+msgstr "Zeigt Logliy über WooCommerce-Checkout- und Kundenkonto-Blöcken für Gäste."
+
+msgid "Classic checkout login form. Guest checkout is unchanged."
+msgstr "Klassisches Checkout-Loginformular. Gast-Checkout bleibt unverändert."
+
+msgid "Link lifetime (minutes)"
+msgstr "Link-Lebensdauer (Minuten)"
+
+msgid "Page not found."
+msgstr "Seite nicht gefunden."
+
+msgid "You can register multiple Passkeys (phone, laptop, security key) and remove any of them anytime. Passkeys require HTTPS and a compatible browser/device."
+msgstr "Sie können mehrere Passkeys registrieren (Handy, Laptop, Sicherheitsschlüssel) und jederzeit entfernen. Passkeys erfordern HTTPS und ein kompatibles Gerät."
+
+msgid "Passkey removed."
+msgstr "Passkey entfernt."
+
+msgid "Passkey renamed."
+msgstr "Passkey umbenannt."
+
+msgid "Hides /wp-login.php and /wp-admin for guests with a 404 (does not redirect to the secret URL). Login only works at your slug. Auto-disabled if WPS Hide Login (or similar) is active."
+msgstr "Versteckt /wp-login.php und /wp-admin für Gäste mit 404 (keine Weiterleitung zur geheimen URL). Login nur über Ihren Slug. Automatisch aus, wenn WPS Hide Login (o. Ä.) aktiv ist."
+
+msgid "Please wait %d seconds before requesting another login email."
+msgstr "Bitte warten Sie %d Sekunden, bevor Sie eine weitere Login-E-Mail anfordern."
+
+msgid "Wait %d s"
+msgstr "Warte %d s"
+
+msgid "Email request cooldown (seconds)"
+msgstr "Cooldown für E-Mail-Anfragen (Sekunden)"
+
+msgid "Minimum wait between Email code / Magic link requests (shared). 0 = off. Default 60."
+msgstr "Mindestwartezeit zwischen E-Mail-Code- und Magic-Link-Anfragen (geteilt). 0 = aus. Standard 60."

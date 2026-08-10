@@ -1,0 +1,11 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Build artifacts (versioned zips live in dist/; local copies at repo root)
+/dist/
+/logliy-*.zip
+/logliy-wordpress.zip
+/logliy-wordpress.version

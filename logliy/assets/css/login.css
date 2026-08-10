@@ -1,0 +1,322 @@
+/* Logliy login surfaces — FloBa blue, WP-login friendly */
+:root {
+  --logliy-blue: #1F6FEB;
+  --logliy-blue-bright: #3183F6;
+  --logliy-ink: #0f172a;
+  --logliy-muted: #64748b;
+  --logliy-line: #d8dee8;
+  --logliy-bg: #f1f5f9;
+  --logliy-card: #ffffff;
+  --logliy-radius: 14px;
+  --logliy-font: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --logliy-input-size: 14px;
+}
+
+body.login.logliy-login {
+  background:
+    radial-gradient(1100px 520px at 8% -8%, rgba(49, 131, 246, 0.14), transparent 55%),
+    radial-gradient(800px 420px at 100% 0%, rgba(31, 111, 235, 0.1), transparent 50%),
+    linear-gradient(180deg, #eef3fa 0%, var(--logliy-bg) 42%, #e8edf5 100%);
+  font-family: var(--logliy-font);
+}
+
+body.login.logliy-login #login {
+  width: 360px;
+  padding: 8% 0 0;
+}
+
+body.login.logliy-login #login h1 a {
+  background-image: none !important;
+  width: auto;
+  height: auto;
+  text-indent: 0;
+  font-size: 0;
+  overflow: hidden;
+  margin: 0 0 12px;
+  pointer-events: none;
+}
+
+body.login.logliy-passwordless #loginform > p:has(#user_login),
+body.login.logliy-passwordless #loginform > .user-pass-wrap,
+body.login.logliy-passwordless #loginform > .forgetmenot,
+body.login.logliy-passwordless #loginform > .submit {
+  display: none !important;
+}
+
+/* Keep Turnstile / other captcha widgets visible and spaced */
+body.login.logliy-login #loginform .cf-turnstile,
+body.login.logliy-login #loginform [class*="cf-turnstile"],
+body.login.logliy-login #loginform iframe[src*="challenges.cloudflare.com"] {
+  margin: 4px 0 8px !important;
+}
+
+.logliy-panel {
+  display: block;
+  font-family: var(--logliy-font);
+  background: var(--logliy-card);
+  border: 1px solid var(--logliy-line);
+  border-radius: var(--logliy-radius);
+  padding: 26px 24px 22px;
+  margin: 0 0 16px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+  animation: logliy-rise 0.4s ease both;
+}
+
+.logliy-panel[hidden] {
+  display: none !important;
+}
+
+@keyframes logliy-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.logliy-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.logliy-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: linear-gradient(145deg, var(--logliy-blue), var(--logliy-blue-bright));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(31, 111, 235, 0.28);
+  flex-shrink: 0;
+}
+
+.logliy-brand-logo {
+  display: block;
+  max-height: 44px;
+  max-width: 140px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.logliy-brand-name {
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: var(--logliy-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.logliy-lead {
+  margin: 0 0 18px;
+  color: var(--logliy-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.logliy-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--logliy-line);
+}
+
+.logliy-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--logliy-muted);
+  font-family: var(--logliy-font);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 8px 12px 12px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.logliy-tab.is-active {
+  color: var(--logliy-blue);
+  border-bottom-color: var(--logliy-blue);
+}
+
+.logliy-pane {
+  display: none;
+  animation: logliy-fade 0.22s ease both;
+}
+
+.logliy-pane.is-active {
+  display: block;
+}
+
+@keyframes logliy-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.logliy-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  margin: 0 0 7px;
+}
+
+/* Beat WP #login form .input font-size */
+body.login.logliy-login .logliy-input,
+.woocommerce .logliy-input,
+.woocommerce-page .logliy-input,
+.logliy-panel .logliy-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--logliy-line) !important;
+  border-radius: 9px !important;
+  padding: 9px 12px !important;
+  margin: 0 0 14px !important;
+  background: #f8fafc !important;
+  color: var(--logliy-ink) !important;
+  font-family: var(--logliy-font) !important;
+  font-size: var(--logliy-input-size) !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  min-height: 0 !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+body.login.logliy-login .logliy-input:focus,
+.woocommerce .logliy-input:focus,
+.logliy-panel .logliy-input:focus {
+  outline: none !important;
+  background: #fff !important;
+  border-color: var(--logliy-blue-bright) !important;
+  box-shadow: 0 0 0 3px rgba(49, 131, 246, 0.16) !important;
+}
+
+.logliy-input-code {
+  letter-spacing: 0.22em !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  font-size: 1rem !important;
+}
+
+.logliy-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #475569;
+  margin: 0 0 16px;
+}
+
+.logliy-check input {
+  margin: 0;
+}
+
+.logliy-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 9px;
+  font-family: var(--logliy-font);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 11px 14px;
+  cursor: pointer;
+  width: 100%;
+  transition: transform 0.15s ease, background 0.15s, opacity 0.15s;
+}
+
+.logliy-btn:active {
+  transform: scale(0.985);
+}
+
+.logliy-btn-primary {
+  background: linear-gradient(180deg, var(--logliy-blue-bright), var(--logliy-blue));
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(31, 111, 235, 0.24);
+}
+
+.logliy-btn-primary:hover {
+  filter: brightness(1.04);
+}
+
+.logliy-btn-primary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.logliy-btn-link {
+  background: transparent;
+  color: var(--logliy-blue);
+  margin-top: 8px;
+  box-shadow: none;
+  width: auto;
+  padding: 6px 0;
+  font-size: 0.8125rem;
+}
+
+.logliy-msg {
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.logliy-msg.is-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.logliy-msg.is-ok {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.logliy-hint {
+  margin: 0;
+  color: var(--logliy-muted);
+  font-size: 0.8125rem;
+}
+
+.woocommerce .logliy-panel,
+.woocommerce-page .logliy-panel {
+  margin-bottom: 1.5rem;
+  max-width: 420px;
+}
+
+@media (max-width: 480px) {
+  body.login.logliy-login #login {
+    width: 92%;
+  }
+  .logliy-panel {
+    padding: 22px 18px 18px;
+  }
+  .logliy-tab {
+    flex: 1;
+    text-align: center;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
+body.login.logliy-login .logliy-login-footer {
+  text-align: center;
+  color: var(--logliy-muted);
+  font-size: 0.8125rem;
+  margin: 16px 0 0;
+  max-width: 360px;
+}
+
+body.login.logliy-login .logliy-login-footer.is-error {
+  color: #b32d2e;
+}
+
+body.login.logliy-login .logliy-login-footer a {
+  color: var(--logliy-blue);
+}
