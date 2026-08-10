@@ -3,7 +3,7 @@
  * Plugin Name:       Logliy - Login Protect (Passkey, Email Code)
  * Plugin URI:        https://www.floba-media.de
  * Description:       Passwordless WordPress login with Passkeys and Email OTP. Works alongside Wordfence; optional password fallback.
- * Version:           0.0.2
+ * Version:           0.0.3
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            FloBa Media
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOGLIY_VERSION', '0.0.2' );
+define( 'LOGLIY_VERSION', '0.0.3' );
 define( 'LOGLIY_PLUGIN_FILE', __FILE__ );
 define( 'LOGLIY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOGLIY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

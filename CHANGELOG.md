@@ -2,6 +2,11 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.0.3] — 2026-08-10
+
+### Fixed
+- Fatal error with Divi when hiding `/wp-admin` for guests: custom login deny no longer loads the theme 404 template during early `init` (undefined `et_pb_is_pagebuilder_used()`)
+
 ## [0.0.2] — 2026-08-10
 
 ### Added

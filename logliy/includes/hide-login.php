@@ -121,23 +121,33 @@ function logliy_is_public_admin_endpoint(): bool {
 
 /**
  * Soft 404 — do not reveal the real login URL.
+ *
+ * Never loads the theme 404 template during early bootstrap (e.g. init from
+ * /wp-admin). Themes like Divi call builder helpers that are not loaded yet
+ * and fatally error (et_pb_is_pagebuilder_used).
  */
 function logliy_hide_login_deny(): void {
 	status_header( 404 );
 	nocache_headers();
 
-	global $wp_query;
-	if ( $wp_query instanceof WP_Query ) {
-		$wp_query->set_404();
+	/*
+	 * Plain 404 response — safe at any load stage (admin init, login_init, etc.).
+	 * Avoid get_header()/theme templates here.
+	 */
+	if ( ! headers_sent() ) {
+		header( 'Content-Type: text/html; charset=utf-8' );
 	}
 
-	$template = get_query_template( '404' );
-	if ( is_string( $template ) && $template !== '' && is_readable( $template ) ) {
-		include $template; // phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingVariable
-		exit;
-	}
+	$title = esc_html__( 'Page not found.', 'logliy' );
+	$body  = esc_html__( 'Page not found.', 'logliy' );
 
-	wp_die( esc_html__( 'Page not found.', 'logliy' ), esc_html__( 'Page not found.', 'logliy' ), array( 'response' => 404 ) );
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- title/body escaped above.
+	echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>'
+		. $title
+		. '</title></head><body><h1>'
+		. $body
+		. '</h1></body></html>';
+	exit;
 }
 
 /**
