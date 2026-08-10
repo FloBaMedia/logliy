@@ -234,7 +234,7 @@ function logliy_settings_page(): void {
 			</span>
 			<div>
 				<h1><?php echo esc_html__( 'Logliy – LoginProtect', 'logliy' ); ?></h1>
-				<p><?php echo esc_html__( 'Passwordless login with Passkeys and Email codes. Use Wordfence for WAF and brute-force protection.', 'logliy' ); ?></p>
+				<p><?php echo esc_html__( 'Passwordless login with Passkeys and Email codes.', 'logliy' ); ?></p>
 			</div>
 		</div>
 
@@ -246,7 +246,7 @@ function logliy_settings_page(): void {
 
 		<?php if ( $tab === 'users' ) : ?>
 			<?php logliy_render_users_overview(); ?>
-			<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media — complements Wordfence, does not replace it.', 'logliy' ); ?></p>
+			<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media.', 'logliy' ); ?></p>
 		</div>
 			<?php
 			return;
@@ -285,6 +285,13 @@ function logliy_settings_page(): void {
 						<td>
 							<label class="lg-toggle"><input type="checkbox" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[allow_password_login]" value="1" <?php checked( ! empty( $s['allow_password_login'] ) ); ?> /><span class="lg-toggle-slider"></span></label>
 							<p class="description"><?php echo esc_html__( 'Off by default. Emergency override: define( \'LOGLIY_ALLOW_PASSWORD\', true ); in wp-config.php.', 'logliy' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Allow XML-RPC passwords', 'logliy' ); ?></th>
+						<td>
+							<label class="lg-toggle"><input type="checkbox" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[allow_xmlrpc_password]" value="1" <?php checked( ! empty( $s['allow_xmlrpc_password'] ) ); ?> /><span class="lg-toggle-slider"></span></label>
+							<p class="description"><?php echo esc_html__( 'Off by default. When password login is off, XML-RPC account passwords are blocked (WordPress app, Jetpack, some backups). Enable only if a tool still needs the account password over XML-RPC. Prefer Application Passwords where possible.', 'logliy' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -678,6 +685,28 @@ function logliy_settings_page(): void {
 				</table>
 			</div>
 			<div class="lg-card">
+				<h2><?php echo esc_html__( 'Import / Export', 'logliy' ); ?></h2>
+				<p class="description"><?php echo esc_html__( 'Copy Logliy settings to another WordPress site. Passkeys and user data are not included. Logo / background images and Relying Party ID are reset (site-specific).', 'logliy' ); ?></p>
+				<p>
+					<a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=logliy_export_settings' ), 'logliy_export_settings' ) ); ?>">
+						<?php echo esc_html__( 'Export settings (JSON)', 'logliy' ); ?>
+					</a>
+				</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" style="margin-top:1em;">
+					<?php wp_nonce_field( 'logliy_import_settings' ); ?>
+					<input type="hidden" name="action" value="logliy_import_settings" />
+					<p>
+						<label for="logliy_import_file" class="screen-reader-text"><?php echo esc_html__( 'Settings JSON file', 'logliy' ); ?></label>
+						<input type="file" name="logliy_import_file" id="logliy_import_file" accept="application/json,.json" required />
+					</p>
+					<p>
+						<button type="submit" class="button button-secondary" onclick="return confirm('<?php echo esc_js( __( 'Replace all Logliy settings on this site with the import file? This overwrites branding, custom CSS, redirects, and security options. Only import files you trust.', 'logliy' ) ); ?>');">
+							<?php echo esc_html__( 'Import settings', 'logliy' ); ?>
+						</button>
+					</p>
+				</form>
+			</div>
+			<div class="lg-card">
 				<h2><?php echo esc_html__( 'Environment', 'logliy' ); ?></h2>
 				<ul class="lg-checks">
 					<?php foreach ( logliy_environment_checks() as $check ) : ?>
@@ -691,7 +720,7 @@ function logliy_settings_page(): void {
 			// Preserve values from other tabs so unchecked tabs don't wipe settings.
 			$preserve = $s;
 			$tab_keys = array(
-				'general'     => array( 'enable_passkey', 'enable_email_otp', 'enable_magic_link', 'allow_password_login', 'password_allowed_roles', 'hide_wp_login_password', 'onboarding_dismissed', 'login_brand_name', 'login_tagline', 'login_logo_id', 'auto_remember', 'login_identifier', 'hide_language_switcher', 'delete_settings_on_uninstall', 'hide_back_to_blog', 'hide_lost_password', 'login_bg_color', 'login_bg_image_id', 'login_footer_text', 'login_custom_css' ),
+				'general'     => array( 'enable_passkey', 'enable_email_otp', 'enable_magic_link', 'allow_password_login', 'allow_xmlrpc_password', 'password_allowed_roles', 'hide_wp_login_password', 'onboarding_dismissed', 'login_brand_name', 'login_tagline', 'login_logo_id', 'auto_remember', 'login_identifier', 'hide_language_switcher', 'delete_settings_on_uninstall', 'hide_back_to_blog', 'hide_lost_password', 'login_bg_color', 'login_bg_image_id', 'login_footer_text', 'login_custom_css' ),
 				'redirects'   => array( 'redirect_login_default', 'redirect_logout_default', 'redirect_login_roles', 'redirect_logout_roles' ),
 				'passkeys'    => array( 'passkey_uv', 'passkey_resident_key' ),
 				'email_otp'   => array( 'otp_ttl_minutes', 'otp_length', 'otp_rate_limit_account', 'otp_rate_limit_ip', 'otp_rate_window_minutes', 'email_request_cooldown_seconds', 'magic_link_ttl_minutes' ),
@@ -734,7 +763,7 @@ function logliy_settings_page(): void {
 			<p><button type="submit" class="button button-primary lg-save-btn"><?php echo esc_html__( 'Save settings', 'logliy' ); ?></button></p>
 		</form>
 
-		<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media — complements Wordfence, does not replace it.', 'logliy' ); ?></p>
+		<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media.', 'logliy' ); ?></p>
 	</div>
 	<?php
 }

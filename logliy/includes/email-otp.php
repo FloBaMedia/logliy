@@ -8,6 +8,33 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * HMAC hash for a short-lived OTP (cheaper than bcrypt; attempt-capped).
+ * Bound to user ID so the same code does not hash identically across accounts.
+ */
+function logliy_otp_hash( string $code, int $user_id ): string {
+	return hash_hmac( 'sha256', $user_id . '|' . $code, wp_salt( 'auth' ) );
+}
+
+/**
+ * Constant-time OTP check. Accepts legacy hashes briefly (bcrypt / unbound HMAC).
+ */
+function logliy_otp_hash_equals( string $code, string $stored, int $user_id ): bool {
+	if ( $stored === '' ) {
+		return false;
+	}
+	// Legacy bcrypt/phpass from earlier releases (OTP TTL is minutes — rare).
+	if ( str_starts_with( $stored, '$P$' ) || str_starts_with( $stored, '$2y$' ) || str_starts_with( $stored, '$wp$' ) ) {
+		return wp_check_password( $code, $stored );
+	}
+	if ( hash_equals( $stored, logliy_otp_hash( $code, $user_id ) ) ) {
+		return true;
+	}
+	// Legacy unbound HMAC from 0.0.4 (same TTL window).
+	$legacy = hash_hmac( 'sha256', $code, wp_salt( 'auth' ) );
+	return hash_equals( $stored, $legacy );
+}
+
+/**
  * Uniform public OTP request response (no account enumeration).
  *
  * @return array{ok:bool,message:string}
@@ -78,23 +105,23 @@ function logliy_otp_request( string $login ) {
 
 	$cd_user = logliy_email_request_cooldown( 'email_user_' . $user->ID );
 	if ( is_wp_error( $cd_user ) ) {
-		return $cd_user;
+		// Same shape as unknown account — no enumeration via cooldown.
+		return logliy_otp_public_request_response();
 	}
 
 	$acc_check = logliy_rate_limit_hit( 'otp_user_' . $user->ID, $acc_lim, $window );
 	if ( is_wp_error( $acc_check ) ) {
-		return $acc_check;
+		return logliy_otp_public_request_response();
 	}
 
 	$length = (int) logliy_get_setting( 'otp_length', 6 );
 	$max    = ( 10 ** $length ) - 1;
 	$code   = str_pad( (string) random_int( 0, $max ), $length, '0', STR_PAD_LEFT );
 	$ttl    = (int) logliy_get_setting( 'otp_ttl_minutes', 10 ) * MINUTE_IN_SECONDS;
-	$hash   = wp_hash_password( $code );
 
 	$payload = array(
 		'user_id' => (int) $user->ID,
-		'hash'    => $hash,
+		'hash'    => logliy_otp_hash( $code, (int) $user->ID ),
 		'tries'   => 0,
 		'ip'      => $ip,
 	);
@@ -187,7 +214,7 @@ function logliy_otp_verify( string $login, string $code, bool $remember = false,
 		return new WP_Error( 'logliy_otp_locked', __( 'Too many invalid code attempts. Please request a new code.', 'logliy' ), array( 'status' => 429 ) );
 	}
 
-	if ( ! wp_check_password( $code, (string) $payload['hash'] ) ) {
+	if ( ! logliy_otp_hash_equals( $code, (string) $payload['hash'], (int) $user->ID ) ) {
 		$payload['tries'] = $tries + 1;
 		$ttl              = (int) logliy_get_setting( 'otp_ttl_minutes', 10 ) * MINUTE_IN_SECONDS;
 		set_transient( 'logliy_otp_' . $user->ID, $payload, $ttl );
@@ -202,6 +229,17 @@ function logliy_otp_verify( string $login, string $code, bool $remember = false,
 	}
 
 	$result = logliy_complete_login( $user, $remember );
+	if ( is_wp_error( $result ) ) {
+		$data = $result->get_error_data();
+		if ( ! is_array( $data ) ) {
+			$data = array();
+		}
+		if ( empty( $data['status'] ) ) {
+			$data['status'] = 403;
+		}
+		$result->add_data( $data );
+		return $result;
+	}
 	if ( has_filter( 'woocommerce_login_redirect' ) ) {
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core redirect filter.
 		$result['redirect'] = (string) apply_filters( 'woocommerce_login_redirect', $result['redirect'], $user );

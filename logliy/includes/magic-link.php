@@ -49,7 +49,7 @@ function logliy_magic_link_request( string $login ) {
 
 	$cd_user = logliy_email_request_cooldown( 'email_user_' . $user->ID );
 	if ( is_wp_error( $cd_user ) ) {
-		return $cd_user;
+		return $public;
 	}
 
 	$acc_check = logliy_rate_limit_hit( 'magic_user_' . $user->ID, $acc_lim, $window );
@@ -87,7 +87,8 @@ function logliy_magic_link_request( string $login ) {
 
 	$sent = logliy_magic_link_send_email( $user, $url, $ttl_min );
 	if ( is_wp_error( $sent ) ) {
-		return $sent;
+		// Same public shape — do not leak that the account exists via mail errors.
+		return $public;
 	}
 
 	return $public;
@@ -185,6 +186,10 @@ function logliy_magic_link_consume(): void {
 
 	$remember = logliy_auto_remember();
 	$result   = logliy_complete_login( $user, $remember );
+	if ( is_wp_error( $result ) ) {
+		wp_safe_redirect( add_query_arg( 'logliy_magic_error', '1', wp_login_url() ) );
+		exit;
+	}
 	wp_safe_redirect( $result['redirect'] );
 	exit;
 }

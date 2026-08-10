@@ -16,13 +16,22 @@ function logliy_credentials_table(): string {
 }
 
 /**
- * Create / upgrade credentials table.
+ * Rate-limit bucket table name.
+ */
+function logliy_rate_limit_table(): string {
+	global $wpdb;
+	return $wpdb->prefix . 'logliy_rl';
+}
+
+/**
+ * Create / upgrade plugin tables.
  */
 function logliy_db_install(): void {
 	global $wpdb;
 
-	$table           = logliy_credentials_table();
 	$charset_collate = $wpdb->get_charset_collate();
+	$table           = logliy_credentials_table();
+	$rl_table        = logliy_rate_limit_table();
 
 	$sql = "CREATE TABLE {$table} (
 		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -45,8 +54,17 @@ function logliy_db_install(): void {
 		KEY user_id (user_id)
 	) {$charset_collate};";
 
+	$sql_rl = "CREATE TABLE {$rl_table} (
+		bucket_hash char(32) NOT NULL,
+		cnt int(10) unsigned NOT NULL DEFAULT 0,
+		expires int(10) unsigned NOT NULL DEFAULT 0,
+		PRIMARY KEY  (bucket_hash),
+		KEY expires (expires)
+	) {$charset_collate};";
+
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta( $sql );
+	dbDelta( $sql_rl );
 
 	update_option( 'logliy_db_version', LOGLIY_DB_VERSION, false );
 }
@@ -201,6 +219,7 @@ function logliy_db_touch_credential( int $id, int $sign_count, ?bool $backup_eli
  */
 function logliy_db_rename_credential( int $id, int $user_id, string $name ): bool {
 	global $wpdb;
+	$name = mb_substr( $name, 0, 191 );
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom credentials table write.
 	$result = $wpdb->update(
 		logliy_credentials_table(),
@@ -212,11 +231,28 @@ function logliy_db_rename_credential( int $id, int $user_id, string $name ): boo
 		array( '%s' ),
 		array( '%d', '%d' )
 	);
-	if ( $result !== false ) {
-		logliy_db_flush_user_credential_cache( $user_id );
-		return true;
+	// update() returns 0 when no rows changed (same name) — still a valid ownership hit.
+	if ( false === $result ) {
+		return false;
 	}
-	return false;
+	// Confirm the row belongs to the user when 0 rows were updated.
+	if ( 0 === (int) $result ) {
+		$table = logliy_credentials_table();
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom credentials table; name is prefix + fixed slug.
+		$owns = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE id = %d AND user_id = %d",
+				$id,
+				$user_id
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		if ( $owns < 1 ) {
+			return false;
+		}
+	}
+	logliy_db_flush_user_credential_cache( $user_id );
+	return true;
 }
 
 /**

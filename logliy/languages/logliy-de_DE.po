@@ -167,14 +167,20 @@ msgstr "WooCommerce"
 msgid "Advanced"
 msgstr "Erweitert"
 
-msgid "Passwordless login with Passkeys and Email codes. Use Wordfence for WAF and brute-force protection."
-msgstr "Passwortlose Anmeldung mit Passkeys und E-Mail-Codes. Nutzen Sie Wordfence für WAF und Brute-Force-Schutz."
+msgid "Passwordless login with Passkeys and Email codes."
+msgstr "Passwortlose Anmeldung mit Passkeys und E-Mail-Codes."
 
 msgid "Authentication methods"
 msgstr "Anmeldemethoden"
 
 msgid "Allow password login"
 msgstr "Passwort-Anmeldung erlauben"
+
+msgid "Allow XML-RPC passwords"
+msgstr "XML-RPC-Passwörter erlauben"
+
+msgid "Off by default. When password login is off, XML-RPC account passwords are blocked (WordPress app, Jetpack, some backups). Enable only if a tool still needs the account password over XML-RPC. Prefer Application Passwords where possible."
+msgstr "Standardmäßig aus. Wenn die Passwort-Anmeldung aus ist, sind XML-RPC-Kontopasswörter blockiert (WordPress-App, Jetpack, einige Backups). Nur aktivieren, wenn ein Tool weiterhin das Kontopasswort über XML-RPC braucht. Application Passwords bevorzugen, wo möglich."
 
 msgid "Off by default. Emergency override: define( 'LOGLIY_ALLOW_PASSWORD', true ); in wp-config.php."
 msgstr "Standardmäßig aus. Notfall-Override: define( 'LOGLIY_ALLOW_PASSWORD', true ); in wp-config.php."
@@ -320,11 +326,68 @@ msgstr "Optionale zusätzliche erlaubte Origins (eine pro Zeile). Vollständige 
 msgid "Environment"
 msgstr "Umgebung"
 
+msgid "Import / Export"
+msgstr "Import / Export"
+
+msgid "Copy Logliy settings to another WordPress site. Passkeys and user data are not included. Logo / background images and Relying Party ID are reset (site-specific)."
+msgstr "Logliy-Einstellungen auf eine andere WordPress-Website kopieren. Passkeys und Benutzerdaten sind nicht enthalten. Logo-/Hintergrundbilder und Relying-Party-ID werden zurückgesetzt (seitenspezifisch)."
+
+msgid "Export settings (JSON)"
+msgstr "Einstellungen exportieren (JSON)"
+
+msgid "Settings JSON file"
+msgstr "Einstellungen-JSON-Datei"
+
+msgid "Replace all Logliy settings on this site with the import file? This overwrites branding, custom CSS, redirects, and security options. Only import files you trust."
+msgstr "Alle Logliy-Einstellungen auf dieser Website durch die Importdatei ersetzen? Das überschreibt Branding, Custom-CSS, Redirects und Sicherheitsoptionen. Nur Dateien importieren, denen Sie vertrauen."
+
+msgid "Import settings"
+msgstr "Einstellungen importieren"
+
+msgid "This file is not a Logliy settings export."
+msgstr "Diese Datei ist kein Logliy-Einstellungen-Export."
+
+msgid "The export file has no settings object."
+msgstr "Die Exportdatei enthält kein settings-Objekt."
+
+msgid "Could not sanitize the imported settings."
+msgstr "Die importierten Einstellungen konnten nicht bereinigt werden."
+
+msgid "You do not have permission to export settings."
+msgstr "Sie haben keine Berechtigung, Einstellungen zu exportieren."
+
+msgid "Could not encode settings."
+msgstr "Einstellungen konnten nicht kodiert werden."
+
+msgid "You do not have permission to import settings."
+msgstr "Sie haben keine Berechtigung, Einstellungen zu importieren."
+
+msgid "Settings imported successfully. Review Relying Party ID and branding images on this site."
+msgstr "Einstellungen erfolgreich importiert. Relying-Party-ID und Branding-Bilder auf dieser Website prüfen."
+
+msgid "Please choose a Logliy settings JSON file to import."
+msgstr "Bitte eine Logliy-Einstellungen-JSON-Datei zum Importieren wählen."
+
+msgid "The upload failed. Please try again."
+msgstr "Der Upload ist fehlgeschlagen. Bitte erneut versuchen."
+
+msgid "The import file is empty or too large (max 512 KB)."
+msgstr "Die Importdatei ist leer oder zu groß (max. 512 KB)."
+
+msgid "The import file could not be read."
+msgstr "Die Importdatei konnte nicht gelesen werden."
+
+msgid "The import file is not valid JSON."
+msgstr "Die Importdatei ist kein gültiges JSON."
+
+msgid "The import file is not a valid Logliy settings export."
+msgstr "Die Importdatei ist kein gültiger Logliy-Einstellungen-Export."
+
 msgid "Save settings"
 msgstr "Einstellungen speichern"
 
-msgid "Logliy by FloBa Media — complements Wordfence, does not replace it."
-msgstr "Logliy von FloBa Media — ergänzt Wordfence, ersetzt es nicht."
+msgid "Logliy by FloBa Media."
+msgstr "Logliy von FloBa Media."
 
 msgid "Settings"
 msgstr "Einstellungen"
@@ -359,8 +422,8 @@ msgstr "Installieren Sie openssl und gmp/bcmath/sodium für WebAuthn."
 msgid "wp_mail is available for Email OTP (verify delivery with a test)."
 msgstr "wp_mail ist für E-Mail-OTP verfügbar (Zustellung mit einem Test prüfen)."
 
-msgid "Logliy works alongside Wordfence: keep Wordfence for WAF, brute-force lockouts, CAPTCHA, and TOTP. Logliy handles Passkey / Email OTP login methods. Failed Logliy attempts still fire wp_login_failed for Wordfence lockouts."
-msgstr "Logliy arbeitet mit Wordfence zusammen: Wordfence für WAF, Brute-Force-Sperren, CAPTCHA und TOTP behalten. Logliy steuert Passkey-/E-Mail-OTP-Methoden. Fehlgeschlagene Logliy-Versuche feuern weiterhin wp_login_failed für Wordfence-Sperren."
+msgid "Logliy works alongside Wordfence: keep Wordfence for WAF and lockouts. Passkey / Email OTP / Magic Link skip Wordfence 2FA (they already are a strong factor). Wordfence 2FA still applies on the classic password path."
+msgstr "Logliy arbeitet mit Wordfence zusammen: Wordfence für WAF und Sperren behalten. Passkey / E-Mail-OTP / Magic Link überspringen Wordfence-2FA (sie sind bereits ein starker Faktor). Wordfence-2FA gilt weiterhin auf dem klassischen Passwort-Pfad."
 
 msgid "Dismiss"
 msgstr "Schließen"
@@ -669,6 +732,7 @@ msgstr "Versteckt /wp-login.php und /wp-admin für Gäste mit 404 (keine Weiterl
 msgid "Please wait %d seconds before requesting another login email."
 msgstr "Bitte warten Sie %d Sekunden, bevor Sie eine weitere Login-E-Mail anfordern."
 
+#. translators: %d: seconds remaining before another email request is allowed
 msgid "Wait %d s"
 msgstr "Warte %d s"
 

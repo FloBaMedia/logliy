@@ -19,13 +19,16 @@ function logliy_db_passkey_counts_for_users( array $user_ids ): array {
 		return array();
 	}
 	global $wpdb;
-	$table  = logliy_credentials_table();
-	$place  = implode( ',', array_fill( 0, count( $user_ids ), '%d' ) );
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; placeholders for IDs.
-	$sql    = $wpdb->prepare( "SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IN ($place) GROUP BY user_id", $user_ids );
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-	$rows   = $wpdb->get_results( $sql, ARRAY_A );
-	$out    = array_fill_keys( $user_ids, 0 );
+	$table = logliy_credentials_table();
+	$place = implode( ',', array_fill( 0, count( $user_ids ), '%d' ) );
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Custom table; dynamic IN() placeholders for absint user IDs.
+	$sql  = $wpdb->prepare(
+		"SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IN ({$place}) GROUP BY user_id",
+		...$user_ids
+	);
+	$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql from $wpdb->prepare() above.
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+	$out = array_fill_keys( $user_ids, 0 );
 	if ( is_array( $rows ) ) {
 		foreach ( $rows as $row ) {
 			$out[ (int) $row['user_id'] ] = (int) $row['cnt'];

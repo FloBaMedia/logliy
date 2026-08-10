@@ -1,6 +1,9 @@
 <?php
 /**
- * Simple IP / account rate limiting via transients.
+ * IP / account rate limiting.
+ *
+ * Object cache: atomic wp_cache_incr.
+ * Otherwise: one atomic INSERT … ON DUPLICATE KEY UPDATE against logliy_rl.
  *
  * @package Logliy
  */
@@ -16,29 +19,78 @@ defined( 'ABSPATH' ) || exit;
  * @return true|WP_Error True if allowed.
  */
 function logliy_rate_limit_hit( string $bucket, int $limit, int $window ) {
-	$key   = 'logliy_rl_' . md5( $bucket );
-	$data  = get_transient( $key );
-	$count = 0;
-	if ( is_array( $data ) && isset( $data['count'] ) ) {
-		$count = (int) $data['count'];
-	}
-
-	if ( $count >= $limit ) {
-		return new WP_Error(
-			'logliy_rate_limited',
-			__( 'Too many attempts. Please wait and try again.', 'logliy' ),
-			array( 'status' => 429 )
-		);
-	}
-
-	set_transient(
-		$key,
-		array(
-			'count' => $count + 1,
-			'start' => time(),
-		),
-		max( $window, 60 )
+	$key     = 'logliy_rl_' . md5( $bucket );
+	$ttl     = max( $window, 60 );
+	$limited = new WP_Error(
+		'logliy_rate_limited',
+		__( 'Too many attempts. Please wait and try again.', 'logliy' ),
+		array( 'status' => 429 )
 	);
+
+	if ( wp_using_ext_object_cache() ) {
+		$group = 'logliy_rl';
+		wp_cache_add( $key, 0, $group, $ttl );
+		$count = wp_cache_incr( $key, 1, $group );
+		if ( false === $count ) {
+			wp_cache_set( $key, 1, $group, $ttl );
+			$count = 1;
+		}
+		if ( $count > $limit ) {
+			return $limited;
+		}
+		return true;
+	}
+
+	global $wpdb;
+	$table = logliy_rate_limit_table();
+	$hash  = md5( $bucket );
+	$now   = time();
+	$exp   = $now + $ttl;
+
+	/*
+	 * Atomic upsert against {$wpdb->prefix}logliy_rl (fixed plugin table).
+	 * phpcs:disable kept open until all queries finish — an early phpcs:enable
+	 * inside a branch is treated as unconditional by Plugin Check.
+	 */
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+	$ok = $wpdb->query(
+		$wpdb->prepare(
+			"INSERT INTO {$table} (bucket_hash, cnt, expires) VALUES (%s, 1, %d)
+			ON DUPLICATE KEY UPDATE
+				cnt = IF(expires < %d, 1, cnt + 1),
+				expires = IF(expires < %d, %d, expires)",
+			$hash,
+			$exp,
+			$now,
+			$now,
+			$exp
+		)
+	);
+
+	$count = 0;
+	if ( false !== $ok ) {
+		$count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT cnt FROM {$table} WHERE bucket_hash = %s",
+				$hash
+			)
+		);
+
+		if ( 1 === wp_rand( 1, 200 ) ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$table} WHERE expires < %d",
+					$now
+				)
+			);
+		}
+	}
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
+	// Table missing / DB error — fail closed for auth endpoints.
+	if ( false === $ok || $count > $limit ) {
+		return $limited;
+	}
 
 	return true;
 }
@@ -47,7 +99,17 @@ function logliy_rate_limit_hit( string $bucket, int $limit, int $window ) {
  * Clear a rate-limit bucket.
  */
 function logliy_rate_limit_clear( string $bucket ): void {
-	delete_transient( 'logliy_rl_' . md5( $bucket ) );
+	$key = 'logliy_rl_' . md5( $bucket );
+	delete_transient( $key );
+	if ( wp_using_ext_object_cache() ) {
+		wp_cache_delete( $key, 'logliy_rl' );
+	}
+
+	global $wpdb;
+	$table = logliy_rate_limit_table();
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fixed plugin table via $wpdb->delete().
+	$wpdb->delete( $table, array( 'bucket_hash' => md5( $bucket ) ), array( '%s' ) );
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 }
 
 /**

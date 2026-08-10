@@ -22,6 +22,7 @@ $logliy_options = array(
 	'logliy_plugin_version',
 	'logliy_db_version',
 	'logliy_wf_notice_dismissed',
+	'logliy_flush_rewrite',
 );
 
 foreach ( $logliy_options as $logliy_option ) {
@@ -32,8 +33,19 @@ $logliy_table = $wpdb->prefix . 'logliy_credentials';
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Uninstall drops the plugin table; name is prefix + fixed slug.
 $wpdb->query( "DROP TABLE IF EXISTS {$logliy_table}" );
 
+$logliy_rl = $wpdb->prefix . 'logliy_rl';
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+$wpdb->query( "DROP TABLE IF EXISTS {$logliy_rl}" );
+
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ('logliy_allow_password','logliy_dismiss_passkey_nag')" );
+$wpdb->query(
+	"DELETE FROM {$wpdb->usermeta} WHERE meta_key IN (
+		'logliy_allow_password',
+		'logliy_dismiss_passkey_nag',
+		'logliy_last_login',
+		'logliy_last_activity'
+	)"
+);
 
 // Best-effort transient cleanup.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

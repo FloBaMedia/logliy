@@ -26,15 +26,9 @@ function logliy_register_login_assets(): void {
 	static $localized = false;
 
 	wp_register_style(
-		'logliy-fonts',
-		'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
-		array(),
-		LOGLIY_VERSION
-	);
-	wp_register_style(
 		'logliy-login',
 		LOGLIY_PLUGIN_URL . 'assets/css/login.css',
-		array( 'logliy-fonts' ),
+		array(),
 		LOGLIY_VERSION
 	);
 	wp_register_script(
@@ -95,6 +89,7 @@ function logliy_register_login_assets(): void {
 				'codePlaceholder'  => __( '6-digit code', 'logliy' ),
 				'remember'         => __( 'Remember me', 'logliy' ),
 				'working'          => __( 'Please wait…', 'logliy' ),
+				/* translators: %d: seconds remaining before another email request is allowed */
 				'waitSeconds'      => __( 'Wait %d s', 'logliy' ),
 				'passkeyFail'      => __( 'Passkey sign-in failed or was cancelled.', 'logliy' ),
 				'passkeyBusy'      => __( 'Passkey is busy — please try again.', 'logliy' ),

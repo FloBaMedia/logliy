@@ -138,15 +138,11 @@ function logliy_hide_login_deny(): void {
 		header( 'Content-Type: text/html; charset=utf-8' );
 	}
 
-	$title = esc_html__( 'Page not found.', 'logliy' );
-	$body  = esc_html__( 'Page not found.', 'logliy' );
-
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- title/body escaped above.
-	echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>'
-		. $title
-		. '</title></head><body><h1>'
-		. $body
-		. '</h1></body></html>';
+	printf(
+		'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>%1$s</title></head><body><h1>%2$s</h1></body></html>',
+		esc_html__( 'Page not found.', 'logliy' ),
+		esc_html__( 'Page not found.', 'logliy' )
+	);
 	exit;
 }
 
@@ -293,9 +289,11 @@ function logliy_load_wp_login(): void {
 	$action = sanitize_key( (string) wp_unslash( $_REQUEST['action'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 	if ( empty( $redirect_to ) && isset( $_REQUEST['redirect_to'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$redirect_to = esc_url_raw( wp_unslash( (string) $_REQUEST['redirect_to'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Core wp-login.php expects $redirect_to.
+		$redirect_to = esc_url_raw( wp_unslash( (string) $_REQUEST['redirect_to'] ) );
 	}
 	if ( empty( $redirect_to ) ) {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Core wp-login.php expects $redirect_to.
 		$redirect_to = admin_url();
 	}
 

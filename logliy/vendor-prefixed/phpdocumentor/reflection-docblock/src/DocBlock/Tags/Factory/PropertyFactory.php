@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Logliy\phpDocumentor\Reflection\DocBlock\Tags\Factory;
+
+use Logliy\phpDocumentor\Reflection\DocBlock\DescriptionFactory;
+use Logliy\phpDocumentor\Reflection\DocBlock\Tag;
+use Logliy\phpDocumentor\Reflection\DocBlock\Tags\Property;
+use Logliy\phpDocumentor\Reflection\TypeResolver;
+use Logliy\phpDocumentor\Reflection\Types\Context;
+use Logliy\PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
+use Logliy\PHPStan\PhpDocParser\Ast\PhpDoc\PropertyTagValueNode;
+use Logliy\Webmozart\Assert\Assert;
+
+use function is_string;
+use function trim;
+
+/**
+ * @internal This class is not part of the BC promise of this library.
+ */
+final class PropertyFactory implements PHPStanFactory
+{
+    private DescriptionFactory $descriptionFactory;
+    private TypeResolver $typeResolver;
+
+    public function __construct(TypeResolver $typeResolver, DescriptionFactory $descriptionFactory)
+    {
+        $this->descriptionFactory = $descriptionFactory;
+        $this->typeResolver = $typeResolver;
+    }
+
+    public function create(PhpDocTagNode $node, Context $context): Tag
+    {
+        $tagValue = $node->value;
+        Assert::isInstanceOf($tagValue, PropertyTagValueNode::class);
+
+        $description = $tagValue->getAttribute('description');
+        if (is_string($description) === false) {
+            $description = $tagValue->description;
+        }
+
+        return new Property(
+            trim($tagValue->propertyName, '$'),
+            $this->typeResolver->createType($tagValue->type, $context),
+            $this->descriptionFactory->create($description, $context)
+        );
+    }
+
+    public function supports(PhpDocTagNode $node, Context $context): bool
+    {
+        return $node->value instanceof PropertyTagValueNode && $node->name === '@property';
+    }
+}

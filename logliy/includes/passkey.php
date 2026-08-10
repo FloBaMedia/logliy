@@ -7,36 +7,36 @@
 
 defined( 'ABSPATH' ) || exit;
 
-use Cose\Algorithms;
-use Cose\Algorithm\Manager as CoseAlgorithmManager;
-use Cose\Algorithm\Signature\ECDSA\ES256;
-use Cose\Algorithm\Signature\ECDSA\ES256K;
-use Cose\Algorithm\Signature\ECDSA\ES384;
-use Cose\Algorithm\Signature\ECDSA\ES512;
-use Cose\Algorithm\Signature\EdDSA\Ed25519;
-use Cose\Algorithm\Signature\RSA\PS256;
-use Cose\Algorithm\Signature\RSA\RS256;
-use Symfony\Component\Uid\Uuid;
-use Webauthn\AttestationStatement\AttestationStatementSupportManager;
-use Webauthn\AttestationStatement\NoneAttestationStatementSupport;
-use Webauthn\AuthenticatorAssertionResponse;
-use Webauthn\AuthenticatorAssertionResponseValidator;
-use Webauthn\AuthenticatorAttestationResponse;
-use Webauthn\AuthenticatorAttestationResponseValidator;
-use Webauthn\AuthenticatorSelectionCriteria;
-use Webauthn\CeremonyStep\CeremonyStepManagerFactory;
-use Webauthn\Counter\CounterChecker;
-use Webauthn\CredentialRecord;
-use Webauthn\Denormalizer\WebauthnSerializerFactory;
-use Webauthn\PublicKeyCredential;
-use Webauthn\PublicKeyCredentialCreationOptions;
-use Webauthn\PublicKeyCredentialDescriptor;
-use Webauthn\PublicKeyCredentialParameters;
-use Webauthn\PublicKeyCredentialRequestOptions;
-use Webauthn\PublicKeyCredentialRpEntity;
-use Webauthn\PublicKeyCredentialUserEntity;
-use Webauthn\TrustPath\EmptyTrustPath;
-use Webauthn\TrustPath\TrustPath;
+use Logliy\Cose\Algorithms;
+use Logliy\Cose\Algorithm\Manager as CoseAlgorithmManager;
+use Logliy\Cose\Algorithm\Signature\ECDSA\ES256;
+use Logliy\Cose\Algorithm\Signature\ECDSA\ES256K;
+use Logliy\Cose\Algorithm\Signature\ECDSA\ES384;
+use Logliy\Cose\Algorithm\Signature\ECDSA\ES512;
+use Logliy\Cose\Algorithm\Signature\EdDSA\Ed25519;
+use Logliy\Cose\Algorithm\Signature\RSA\PS256;
+use Logliy\Cose\Algorithm\Signature\RSA\RS256;
+use Logliy\Symfony\Component\Uid\Uuid;
+use Logliy\Webauthn\AttestationStatement\AttestationStatementSupportManager;
+use Logliy\Webauthn\AttestationStatement\NoneAttestationStatementSupport;
+use Logliy\Webauthn\AuthenticatorAssertionResponse;
+use Logliy\Webauthn\AuthenticatorAssertionResponseValidator;
+use Logliy\Webauthn\AuthenticatorAttestationResponse;
+use Logliy\Webauthn\AuthenticatorAttestationResponseValidator;
+use Logliy\Webauthn\AuthenticatorSelectionCriteria;
+use Logliy\Webauthn\CeremonyStep\CeremonyStepManagerFactory;
+use Logliy\Webauthn\Counter\CounterChecker;
+use Logliy\Webauthn\CredentialRecord;
+use Logliy\Webauthn\Denormalizer\WebauthnSerializerFactory;
+use Logliy\Webauthn\PublicKeyCredential;
+use Logliy\Webauthn\PublicKeyCredentialCreationOptions;
+use Logliy\Webauthn\PublicKeyCredentialDescriptor;
+use Logliy\Webauthn\PublicKeyCredentialParameters;
+use Logliy\Webauthn\PublicKeyCredentialRequestOptions;
+use Logliy\Webauthn\PublicKeyCredentialRpEntity;
+use Logliy\Webauthn\PublicKeyCredentialUserEntity;
+use Logliy\Webauthn\TrustPath\EmptyTrustPath;
+use Logliy\Webauthn\TrustPath\TrustPath;
 
 /**
  * Permissive counter checker for platform passkeys (often stay at 0).
@@ -48,7 +48,7 @@ class Logliy_Counter_Checker implements CounterChecker {
 		}
 		if ( $current_counter > 0 && $current_counter <= $credential_record->counter ) {
 			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- CounterException constructor args are integers, not rendered HTML.
-			throw \Webauthn\Exception\CounterException::create(
+			throw \Logliy\Webauthn\Exception\CounterException::create(
 				$current_counter,
 				$credential_record->counter,
 				'Invalid counter.'
@@ -88,7 +88,7 @@ function logliy_array_remove_nulls( array $data ): array {
 /**
  * Shared serializer.
  *
- * @return \Symfony\Component\Serializer\SerializerInterface
+ * @return \Logliy\Symfony\Component\Serializer\SerializerInterface
  */
 function logliy_webauthn_serializer() {
 	static $serializer = null;
@@ -276,7 +276,7 @@ function logliy_passkey_register_verify( WP_User $user, string $challenge_id, ar
 		$host      = is_string( $host ) ? $host : logliy_rp_id();
 		$record    = $validator->check( $response, $creation_options, $host );
 	} catch ( Throwable $e ) {
-		return new WP_Error( 'logliy_attestation_failed', __( 'Passkey registration failed.', 'logliy' ) . ' ' . $e->getMessage(), array( 'status' => 400 ) );
+		return new WP_Error( 'logliy_attestation_failed', __( 'Passkey registration failed.', 'logliy' ) . ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ? ( ' ' . $e->getMessage() ) : '' ), array( 'status' => 400 ) );
 	}
 
 	$cred_id = logliy_b64u_encode( $record->publicKeyCredentialId );
@@ -493,6 +493,12 @@ function logliy_passkey_auth_verify( string $challenge_id, array $credential, bo
 		return new WP_Error( 'logliy_unknown_user', __( 'Unknown user for this Passkey.', 'logliy' ), array( 'status' => 401 ) );
 	}
 
+	$expected_uid = (int) ( $stored['user_id'] ?? 0 );
+	if ( $expected_uid > 0 && $expected_uid !== (int) $user->ID ) {
+		logliy_fire_login_failed( $user->user_login, __( 'Passkey verification failed.', 'logliy' ) );
+		return new WP_Error( 'logliy_assertion_failed', __( 'Passkey verification failed.', 'logliy' ), array( 'status' => 401 ) );
+	}
+
 	$record = logliy_credential_record_from_row( $row );
 
 	try {
@@ -518,6 +524,17 @@ function logliy_passkey_auth_verify( string $challenge_id, array $credential, bo
 	}
 
 	$result = logliy_complete_login( $user, $remember );
+	if ( is_wp_error( $result ) ) {
+		$data = $result->get_error_data();
+		if ( ! is_array( $data ) ) {
+			$data = array();
+		}
+		if ( empty( $data['status'] ) ) {
+			$data['status'] = 403;
+		}
+		$result->add_data( $data );
+		return $result;
+	}
 	if ( has_filter( 'woocommerce_login_redirect' ) ) {
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core redirect filter.
 		$result['redirect'] = (string) apply_filters( 'woocommerce_login_redirect', $result['redirect'], $user );

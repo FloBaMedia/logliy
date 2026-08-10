@@ -7,9 +7,71 @@
         "php": ">=8.1",
         "web-auth/webauthn-lib": "^5"
     },
+    "require-dev": {
+        "brianhenryie/strauss": "^0.28"
+    },
+    "scripts": {
+        "prefix-deps": [
+            "vendor/bin/strauss"
+        ],
+        "post-install-cmd": [
+            "@prefix-deps"
+        ],
+        "post-update-cmd": [
+            "@prefix-deps"
+        ]
+    },
+    "extra": {
+        "strauss": {
+            "target_directory": "vendor-prefixed",
+            "namespace_prefix": "Logliy\\",
+            "classmap_prefix": "Logliy_",
+            "constant_prefix": "LOGLIY_",
+            "packages": [
+                "web-auth/webauthn-lib",
+                "web-auth/cose-lib",
+                "spomky-labs/cbor-php",
+                "spomky-labs/pki-framework",
+                "brick/math",
+                "symfony/serializer",
+                "symfony/property-access",
+                "symfony/property-info",
+                "symfony/string",
+                "symfony/uid",
+                "symfony/type-info",
+                "symfony/clock",
+                "symfony/deprecation-contracts",
+                "symfony/polyfill-mbstring",
+                "symfony/polyfill-ctype",
+                "symfony/polyfill-intl-grapheme",
+                "symfony/polyfill-intl-normalizer",
+                "symfony/polyfill-php83",
+                "symfony/polyfill-php84",
+                "symfony/polyfill-uuid",
+                "phpdocumentor/reflection-docblock",
+                "phpdocumentor/type-resolver",
+                "phpdocumentor/reflection-common",
+                "phpstan/phpdoc-parser",
+                "webmozart/assert",
+                "paragonie/constant_time_encoding",
+                "doctrine/deprecations",
+                "psr/clock",
+                "psr/container",
+                "psr/event-dispatcher",
+                "psr/log"
+            ],
+            "update_call_sites": [
+                "includes"
+            ],
+            "delete_vendor_packages": true,
+            "delete_vendor_files": true
+        }
+    },
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true,
-        "allow-plugins": {}
+        "allow-plugins": {
+            "brianhenryie/strauss": true
+        }
     }
 }

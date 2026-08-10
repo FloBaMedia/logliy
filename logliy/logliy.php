@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Logliy - Login Protect (Passkey, Email Code)
  * Plugin URI:        https://www.floba-media.de
- * Description:       Passwordless WordPress login with Passkeys and Email OTP. Works alongside Wordfence; optional password fallback.
- * Version:           0.0.3
+ * Description:       Passwordless WordPress login with Passkeys and Email OTP. Optional password fallback.
+ * Version:           0.0.5
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            FloBa Media
@@ -18,21 +18,26 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOGLIY_VERSION', '0.0.3' );
+define( 'LOGLIY_VERSION', '0.0.5' );
 define( 'LOGLIY_PLUGIN_FILE', __FILE__ );
 define( 'LOGLIY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOGLIY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LOGLIY_ADMIN_PAGE', 'logliy' );
 define( 'LOGLIY_OPT_SETTINGS', 'logliy_settings' );
 define( 'LOGLIY_OPT_VERSION', 'logliy_plugin_version' );
-define( 'LOGLIY_DB_VERSION', '1' );
+define( 'LOGLIY_DB_VERSION', '2' );
 
+$logliy_prefixed = LOGLIY_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 $logliy_autoload = LOGLIY_PLUGIN_DIR . 'vendor/autoload.php';
-if ( is_readable( $logliy_autoload ) ) {
+if ( is_readable( $logliy_prefixed ) ) {
+	require_once $logliy_prefixed;
+} elseif ( is_readable( $logliy_autoload ) ) {
+	// Fallback for local composer install before Strauss has run.
 	require_once $logliy_autoload;
 }
 
 require_once LOGLIY_PLUGIN_DIR . 'includes/settings.php';
+require_once LOGLIY_PLUGIN_DIR . 'includes/settings-transfer.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/db.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/rate-limit.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/password-policy.php';
@@ -103,13 +108,27 @@ function logliy_maybe_upgrade(): void {
 }
 
 /**
- * Client IP helper (uses REMOTE_ADDR only).
+ * Client IP helper (REMOTE_ADDR by default).
+ *
+ * Filter `logliy_client_ip` to honour a trusted proxy (e.g. Cloudflare CF-Connecting-IP)
+ * when the host terminates TLS in front of PHP.
  */
 function logliy_client_ip(): string {
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via filter_var below.
 	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
 	$ip = sanitize_text_field( $ip );
-	return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+	$ip = filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+
+	/**
+	 * Filter the client IP used for rate limits / cooldowns.
+	 *
+	 * @param string $ip Detected IP (REMOTE_ADDR).
+	 */
+	$filtered = apply_filters( 'logliy_client_ip', $ip );
+	if ( is_string( $filtered ) && filter_var( $filtered, FILTER_VALIDATE_IP ) ) {
+		return $filtered;
+	}
+	return $ip;
 }
 
 /**
@@ -122,39 +141,75 @@ function logliy_is_https(): bool {
 /**
  * Complete a successful Logliy login the same way wp_signon would.
  *
+ * Runs authenticate / wp_authenticate_user so Wordfence lockouts, Multisite
+ * flags and other plugins can still reject the session. Wordfence Login
+ * Security 2FA is suspended here — Passkey/OTP/Magic Link already replace
+ * the password factor.
+ *
  * @param WP_User $user     Authenticated user.
  * @param bool    $remember Remember me.
- * @return array{redirect:string}
+ * @return array{redirect:string}|WP_Error
  */
-function logliy_complete_login( WP_User $user, bool $remember = false ): array {
-	wp_set_current_user( $user->ID );
-	wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
-
-	/** Fires after a user logs in (Wordfence and others listen here). */
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core login hook for compatibility.
-	do_action( 'wp_login', $user->user_login, $user );
-
-	$redirect = admin_url();
-
-	$requested = '';
-	if ( isset( $_REQUEST['redirect_to'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$requested = esc_url_raw( wp_unslash( (string) $_REQUEST['redirect_to'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-	}
-	if ( $requested !== '' ) {
-		$redirect = $requested;
-	}
-
-	/**
-	 * Filter the redirect URL after a successful Logliy login.
-	 *
-	 * @param string  $redirect Redirect URL.
-	 * @param WP_User $user     User object.
+function logliy_complete_login( WP_User $user, bool $remember = false ) {
+	/*
+	 * Let security plugins (Wordfence IP lockouts, country blocks, etc.) and
+	 * Multisite spam/deleted checks run before issuing a cookie.
+	 * Suspend Wordfence LS 2FA only for this passwordless completion.
 	 */
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core login_redirect for WP/theme compatibility.
-	$redirect = (string) apply_filters( 'login_redirect', $redirect, $requested, $user );
-	$redirect = logliy_safe_redirect_url( $redirect );
+	logliy_wordfence_ls_suspend_auth();
 
-	return array( 'redirect' => $redirect );
+	try {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core auth filters for compatibility.
+		$auth = apply_filters( 'authenticate', $user, $user->user_login, '' );
+		if ( is_wp_error( $auth ) ) {
+			logliy_fire_login_failed( $user->user_login, $auth );
+			return $auth;
+		}
+		if ( $auth instanceof WP_User ) {
+			$user = $auth;
+		}
+
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core auth filter for compatibility.
+		$checked = apply_filters( 'wp_authenticate_user', $user, '' );
+		if ( is_wp_error( $checked ) ) {
+			logliy_fire_login_failed( $user->user_login, $checked );
+			return $checked;
+		}
+		if ( $checked instanceof WP_User ) {
+			$user = $checked;
+		}
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
+
+		/** Fires after a user logs in (Wordfence and others listen here). */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core login hook for compatibility.
+		do_action( 'wp_login', $user->user_login, $user );
+
+		$redirect = admin_url();
+
+		$requested = '';
+		if ( isset( $_REQUEST['redirect_to'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$requested = esc_url_raw( wp_unslash( (string) $_REQUEST['redirect_to'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		}
+		if ( $requested !== '' ) {
+			$redirect = $requested;
+		}
+
+		/**
+		 * Filter the redirect URL after a successful Logliy login.
+		 *
+		 * @param string  $redirect Redirect URL.
+		 * @param WP_User $user     User object.
+		 */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core login_redirect for WP/theme compatibility.
+		$redirect = (string) apply_filters( 'login_redirect', $redirect, $requested, $user );
+		$redirect = logliy_safe_redirect_url( $redirect );
+
+		return array( 'redirect' => $redirect );
+	} finally {
+		logliy_wordfence_ls_resume_auth();
+	}
 }
 
 /**

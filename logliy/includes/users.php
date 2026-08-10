@@ -111,7 +111,7 @@ function logliy_user_profile_section( WP_User $user ): void {
 add_action( 'personal_options_update', 'logliy_save_user_profile' );
 add_action( 'edit_user_profile_update', 'logliy_save_user_profile' );
 function logliy_save_user_profile( int $user_id ): void {
-	if ( ! current_user_can( 'edit_users' ) ) {
+	if ( ! current_user_can( 'edit_user', $user_id ) ) {
 		return;
 	}
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- core profile nonce already checked.

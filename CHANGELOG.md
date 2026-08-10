@@ -2,6 +2,37 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.0.5] — 2026-08-10
+
+### Added
+- Settings import / export (JSON) under Advanced — clone Logliy config to another site (Passkeys/users not included; media IDs and RP ID reset)
+- Setting **Allow XML-RPC passwords** (default off): when password login is disabled, XML-RPC account-password auth stays blocked unless explicitly enabled (WordPress app / Jetpack / some backups)
+- Atomic rate-limit table (`{prefix}logliy_rl`) for installs without an object cache (no option-lock spin)
+
+### Changed
+- Composer dependencies are namespace-prefixed with Strauss into `vendor-prefixed/` (`Logliy\…`) to avoid Symfony/class collisions with other plugins
+- Release ZIP ships `vendor-prefixed/` only (excludes Composer `vendor/` / Strauss tooling / `composer.json`)
+- Passwordless login (Passkey / OTP / Magic Link) skips Wordfence Login Security 2FA; Wordfence IP lockouts still apply via the core authenticate filter
+- Settings import sanitizes against defaults without writing live options mid-import
+- OTP HMAC is bound to the user ID; import confirm warns about overwriting custom CSS
+
+## [0.0.4] — 2026-08-10
+
+### Security
+- Password policy no longer exempts all XML-RPC / REST auth; only Application Passwords, WP-CLI, and Cron
+- Passwordless login (Passkey / OTP / Magic Link) runs `authenticate` and `wp_authenticate_user` before issuing cookies so Wordfence lockouts and similar filters can reject the session
+- Account-level email cooldown / rate-limit responses use the same public shape as unknown accounts (less enumeration)
+- OTP codes stored with HMAC-SHA256 instead of bcrypt (attempt-capped; DoS-friendlier)
+- Rate-limit increments are atomic with object cache (`wp_cache_incr`) or a short option lock otherwise
+
+### Changed
+- Login UI uses a system font stack (no Google Fonts CDN)
+- Client IP is filterable via `logliy_client_ip` for trusted proxies
+- Passkey rename: name length capped; ownership check when update affects 0 rows
+- Profile password override save uses `edit_user` capability
+- Uninstall wipe also removes last-login / activity usermeta and `logliy_flush_rewrite`
+- WebAuthn exception details only appended when `WP_DEBUG` is on
+
 ## [0.0.3] — 2026-08-10
 
 ### Fixed

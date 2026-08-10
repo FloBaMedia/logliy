@@ -30,10 +30,11 @@ const SKIP_NAMES = new Set([
   ".git",
   ".gitignore",
   "node_modules",
+  "composer.json",
   "composer.lock",
 ]);
 
-const SKIP_DIR_NAMES = new Set([".git", "node_modules"]);
+const SKIP_DIR_NAMES = new Set([".git", "node_modules", "vendor"]);
 
 function readPluginVersion() {
   const php = readFileSync(phpMain, "utf8");

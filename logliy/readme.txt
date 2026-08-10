@@ -4,7 +4,7 @@ Tags: login, passkey, passwordless, otp, woocommerce
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.0.3
+Stable tag: 0.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,9 +39,9 @@ It is **not** a security suite. Keep [Wordfence](https://www.wordfence.com/) (or
 
 * Failed Logliy attempts trigger `wp_login_failed` so Wordfence lockouts still apply
 * Successful Logliy logins use `wp_set_auth_cookie` + `wp_login` like a normal `wp_signon`
-* Wordfence Login CAPTCHA remains relevant on the password path; Passkey/OTP use Logliy's rate limits
-* Logliy does **not** remove Wordfence hooks
-* Wordfence TOTP 2FA continues to apply on the classic password path. Passkey / Email OTP are primary (password-replacement) factors in v1 and establish a session after success
+* Wordfence IP lockouts still run during passwordless login; Wordfence Login Security 2FA is skipped for Passkey / Email OTP / Magic Link (those methods already replace the password)
+* Wordfence TOTP 2FA continues to apply on the classic password path
+* Logliy does **not** remove Wordfence hooks globally — only suspends LS 2FA for the passwordless completion step
 
 = Cloudflare Turnstile =
 
@@ -84,11 +84,31 @@ Then sign in with your password and adjust Logliy settings.
 
 No. Logliy is the login **method** layer. Wordfence remains your WAF / lockout / scanner layer.
 
-= Application Passwords / WP-CLI =
+= Application Passwords / WP-CLI / XML-RPC =
 
-Those flows are not blocked by the password policy.
+Application Passwords and WP-CLI are not blocked by the password policy.
+With password login off, XML-RPC authentication with the **account password** is blocked by default (affects the WordPress mobile app, Jetpack, and some backup tools). Enable **Allow XML-RPC passwords** under Logliy → General if a tool still requires it. Prefer Application Passwords when the client supports them.
 
 == Changelog ==
+
+= 0.0.5 =
+* Settings import/export (JSON) for cloning config between sites
+* Vendor namespaces prefixed with Strauss (Logliy\) to avoid Symfony conflicts
+* Passwordless login skips Wordfence 2FA (lockouts still apply); Wordfence 2FA remains on password path
+* Optional “Allow XML-RPC passwords” (off by default) when password login is disabled
+* Atomic rate-limit DB table (no option-lock); OTP HMAC bound to user; safer settings import
+
+= 0.0.4 =
+* Security: password policy applies to XML-RPC; REST exemption limited to Application Passwords
+* Security: passwordless login runs authenticate / wp_authenticate_user before cookies (Wordfence lockouts)
+* Privacy: system font stack instead of Google Fonts CDN
+* Hardening: account cooldown/rate-limit responses no longer enumerate users; atomic rate-limit buckets; OTP HMAC
+
+= 0.0.3 =
+* Fix: Divi fatal when hiding wp-admin (no theme 404 template during early init)
+
+= 0.0.2 =
+* Magic link, custom login URL, redirects, sessions, users overview, WC blocks, branding extras
 
 = 0.0.1 =
 * Initial pre-release: Passkeys, Email OTP, password policy (default off), wp-login + WooCommerce classic

@@ -285,15 +285,12 @@ function logliy_rest_passkey_rename( WP_REST_Request $request ) {
 	$user = wp_get_current_user();
 	$id   = (int) $request->get_param( 'id' );
 	$name = sanitize_text_field( (string) $request->get_param( 'name' ) );
+	$name = mb_substr( $name, 0, 191 );
 	if ( $name === '' ) {
 		return new WP_Error( 'logliy_name_required', __( 'Name is required.', 'logliy' ), array( 'status' => 400 ) );
 	}
 	$ok = logliy_db_rename_credential( $id, (int) $user->ID, $name );
-	if ( ! $ok && ! current_user_can( 'edit_users' ) ) {
-		return new WP_Error( 'logliy_not_found', __( 'Passkey not found.', 'logliy' ), array( 'status' => 404 ) );
-	}
-	if ( ! $ok && current_user_can( 'edit_users' ) ) {
-		// Admin renaming another user's key via profile of self only in v1.
+	if ( ! $ok ) {
 		return new WP_Error( 'logliy_not_found', __( 'Passkey not found.', 'logliy' ), array( 'status' => 404 ) );
 	}
 	return rest_ensure_response( array( 'ok' => true, 'name' => $name ) );

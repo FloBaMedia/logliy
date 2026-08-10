@@ -70,7 +70,28 @@ function logliy_password_allowed_for_user( ?WP_User $user ): bool {
 }
 
 /**
- * Detect non-interactive / API auth contexts that must never be blocked.
+ * Whether XML-RPC may authenticate with the account password when password login is off.
+ * Application Passwords are always allowed separately.
+ */
+function logliy_xmlrpc_password_allowed(): bool {
+	if ( logliy_password_emergency_allowed() ) {
+		return true;
+	}
+	return (bool) logliy_get_setting( 'allow_xmlrpc_password', false );
+}
+
+/**
+ * Mark that Application Password auth succeeded (narrow REST/XML-RPC exemption).
+ */
+add_action( 'application_password_did_authenticate', 'logliy_mark_application_password_auth', 1, 0 );
+function logliy_mark_application_password_auth(): void {
+	$GLOBALS['logliy_application_password_auth'] = true;
+}
+
+/**
+ * Non-interactive contexts that may use passwords despite policy.
+ * REST/XML-RPC account passwords are blocked unless allow_xmlrpc_password is on
+ * (Application Passwords / WP-CLI / Cron remain exempt).
  */
 function logliy_is_exempt_auth_context(): bool {
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -79,11 +100,10 @@ function logliy_is_exempt_auth_context(): bool {
 	if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
 		return true;
 	}
-	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-		// Application Passwords and API auth use authenticate during REST.
+	if ( ! empty( $GLOBALS['logliy_application_password_auth'] ) ) {
 		return true;
 	}
-	if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+	if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST && logliy_xmlrpc_password_allowed() ) {
 		return true;
 	}
 	return false;
@@ -91,6 +111,10 @@ function logliy_is_exempt_auth_context(): bool {
 
 /**
  * Block password authentication when policy disallows it.
+ *
+ * Any non-empty password must pass policy unless the context is exempt
+ * (Application Passwords / WP-CLI / Cron / optional XML-RPC). With
+ * allow_xmlrpc_password off, XML-RPC account-password auth is blocked.
  *
  * @param WP_User|WP_Error|null $user     User or error.
  * @param string                $username Username.
@@ -116,24 +140,10 @@ function logliy_filter_authenticate( $user, string $username, string $password )
 	}
 
 	if ( is_wp_error( $user ) || ! $user instanceof WP_User ) {
-		// Still block empty success paths; let WP continue for unknown users.
-		if ( ! logliy_password_login_globally_allowed() && ! logliy_password_emergency_allowed() ) {
-			// Only intervene when a password was supplied on a frontend login surface.
-			if ( logliy_is_password_login_request() ) {
-				return new WP_Error(
-					'logliy_password_disabled',
-					__( 'Password login is disabled. Use a Passkey or Email code instead.', 'logliy' )
-				);
-			}
-		}
 		return $user;
 	}
 
 	if ( logliy_password_allowed_for_user( $user ) ) {
-		return $user;
-	}
-
-	if ( ! logliy_is_password_login_request() ) {
 		return $user;
 	}
 
@@ -145,7 +155,7 @@ function logliy_filter_authenticate( $user, string $username, string $password )
 add_filter( 'authenticate', 'logliy_filter_authenticate', 30, 3 );
 
 /**
- * Secondary check after user is resolved.
+ * Secondary check after user is resolved (form / XML-RPC / etc.).
  *
  * @param WP_User|WP_Error $user User.
  * @return WP_User|WP_Error
@@ -157,10 +167,11 @@ function logliy_filter_wp_authenticate_user( $user ) {
 	if ( logliy_is_exempt_auth_context() ) {
 		return $user;
 	}
-	if ( ! logliy_is_password_login_request() ) {
+	if ( logliy_password_allowed_for_user( $user ) ) {
 		return $user;
 	}
-	if ( logliy_password_allowed_for_user( $user ) ) {
+	// Only enforce on password-bearing requests (form POST or XML-RPC password calls).
+	if ( ! logliy_is_password_login_request() && ! ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) ) {
 		return $user;
 	}
 	return new WP_Error(
@@ -178,6 +189,5 @@ function logliy_is_password_login_request(): bool {
 	if ( empty( $_POST['pwd'] ) && empty( $_POST['password'] ) && empty( $_POST['logliy_password'] ) ) {
 		return false;
 	}
-	// Application password creation screens etc. still send pwd — exempt REST already handled.
 	return true;
 }

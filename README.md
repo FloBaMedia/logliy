@@ -18,7 +18,7 @@ dist/            Output: logliy-{version}.zip + logliy-wordpress.zip
 - WordPress 6.4+
 - HTTPS for Passkeys
 
-Vendor dependencies are included under `logliy/vendor/` (`web-auth/webauthn-lib` ^5).
+Vendor dependencies are namespace-prefixed with [Strauss](https://github.com/BrianHenryIE/strauss) into `logliy/vendor-prefixed/` (`Logliy\…`) so Symfony / WebAuthn classes do not collide with other plugins.
 
 ## Languages
 
@@ -30,7 +30,7 @@ WordPress site (or user) language selects the translation.
 ## Build ZIP
 
 Same approach as CookiePeak (`apps/wordpress-plugin/build.mjs`): Node builds a ZIP with
-**forward slashes** (required on Linux hosts; PowerShell `Compress-Archive` breaks activation).
+**forward slashes** (required on Linux hosts; PowerShell `Compress-Archive` breaks activation). The release ZIP includes `vendor-prefixed/` and excludes Composer `vendor/` (Strauss / require-dev).
 
 ```bash
 node build.mjs
@@ -39,17 +39,18 @@ node build.mjs
 
 Outputs (gitignored under `dist/` and repo root):
 
-- `dist/logliy-0.0.2.zip` — versioned release (version from `logliy.php`)
+- `dist/logliy-0.0.5.zip` — versioned release (version from `logliy.php`)
 - `dist/logliy-wordpress.zip` — stable alias (always latest build)
 - `dist/logliy-wordpress.version` — sidecar with the version string
 
-In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.0.2.zip`.
+In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.0.5.zip`.
 
 ## Develop
 
 ```bash
 cd logliy
-composer install --no-dev -o
+composer install
+# post-install runs Strauss → vendor-prefixed/
 ```
 
 ## Emergency password unlock

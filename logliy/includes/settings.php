@@ -18,6 +18,7 @@ function logliy_default_settings(): array {
 		'enable_email_otp'             => true,
 		'enable_magic_link'            => true,
 		'allow_password_login'         => false,
+		'allow_xmlrpc_password'        => false,
 		'password_allowed_roles'       => array(),
 		'otp_ttl_minutes'              => 10,
 		'otp_length'                   => 6,
@@ -116,20 +117,27 @@ function logliy_update_settings( array $patch ): array {
 }
 
 /**
- * Sanitize settings from admin form.
+ * Sanitize settings from admin form or import.
  *
- * @param array<string, mixed> $input Raw input.
+ * @param array<string, mixed>      $input Raw input.
+ * @param array<string, mixed>|null $base  Optional baseline (defaults to current settings).
+ *                                         Pass logliy_default_settings() for a full replace import.
  * @return array<string, mixed>
  */
-function logliy_sanitize_settings( array $input ): array {
+function logliy_sanitize_settings( array $input, ?array $base = null ): array {
 	$defaults = logliy_default_settings();
-	$out      = logliy_get_settings();
+	if ( is_array( $base ) ) {
+		$out = array_merge( $defaults, $base );
+	} else {
+		$out = logliy_get_settings();
+	}
 
 	$bool_keys = array(
 		'enable_passkey',
 		'enable_email_otp',
 		'enable_magic_link',
 		'allow_password_login',
+		'allow_xmlrpc_password',
 		'wc_enable_myaccount',
 		'wc_enable_checkout',
 		'wc_enable_blocks',

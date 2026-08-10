@@ -4,6 +4,9 @@
 .vscode/
 *.swp
 
+# Composer tooling (runtime deps live in vendor-prefixed/)
+/logliy/vendor/
+
 # Build artifacts (versioned zips live in dist/; local copies at repo root)
 /dist/
 /logliy-*.zip
