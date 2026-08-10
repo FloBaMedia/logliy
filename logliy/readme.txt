@@ -52,14 +52,14 @@ When [Simple CAPTCHA with Cloudflare Turnstile](https://wordpress.org/plugins/si
 * Classic My Account and Checkout login templates
 * Guest checkout unchanged
 * Does not block WooCommerce REST / Store API authentication
-* Gutenberg/Blocks login parity is planned for a later release
+* Optional panel above Checkout and Customer Account blocks for guests
 
 = Requirements =
 
 * PHP 8.1+
 * WordPress 6.4+
 * HTTPS for Passkeys (localhost allowed for development)
-* Composer production dependencies are vendored in release builds (`vendor/`)
+* Composer production dependencies are vendored in release builds (`vendor-prefixed/`)
 
 == Installation ==
 
