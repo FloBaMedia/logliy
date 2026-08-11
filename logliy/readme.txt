@@ -4,7 +4,7 @@ Tags: login, passkey, passwordless, otp, woocommerce
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.0.6
+Stable tag: 0.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -90,6 +90,10 @@ Application Passwords and WP-CLI are not blocked by the password policy.
 With password login off, XML-RPC authentication with the **account password** is blocked by default (affects the WordPress mobile app, Jetpack, and some backup tools). Enable **Allow XML-RPC passwords** under Logliy → General if a tool still requires it. Prefer Application Passwords when the client supports them.
 
 == Changelog ==
+
+= 0.0.7 =
+* Ignore leftover Turnstile DB options when the Captcha plugin is not active (fixes false CAPTCHA block)
+* Show plugin version on settings page; remove duplicate “settings saved” notice
 
 = 0.0.6 =
 * Captcha only required when Cloudflare Turnstile is enabled and configured; sites without Captcha are not blocked

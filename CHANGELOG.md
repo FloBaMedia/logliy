@@ -2,6 +2,15 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.0.7] — 2026-08-11
+
+### Fixed
+- Orphaned `cfturnstile_*` options after uninstalling Simple Cloudflare Turnstile no longer force Captcha on passwordless login (only an active Turnstile plugin or explicit `CF_TURNSTILE_*` constants count)
+- Duplicate “Settings saved” notice on the Logliy settings screen
+
+### Added
+- Plugin version shown in the settings page header
+
 ## [0.0.6] — 2026-08-10
 
 ### Fixed

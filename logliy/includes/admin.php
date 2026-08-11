@@ -301,7 +301,10 @@ function logliy_settings_page(): void {
 				<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z"/><path d="M9 12l2 2 4-4"/></svg>
 			</span>
 			<div>
-				<h1><?php echo esc_html__( 'Logliy – LoginProtect', 'logliy' ); ?></h1>
+				<h1>
+					<?php echo esc_html__( 'Logliy – LoginProtect', 'logliy' ); ?>
+					<span class="lg-version"><?php echo esc_html( 'v' . LOGLIY_VERSION ); ?></span>
+				</h1>
 				<p><?php echo esc_html__( 'Passwordless login with Passkeys and Email codes.', 'logliy' ); ?></p>
 			</div>
 		</div>
@@ -311,8 +314,6 @@ function logliy_settings_page(): void {
 				<a class="lg-tab<?php echo $tab === $key ? ' is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'options-general.php?page=' . LOGLIY_ADMIN_PAGE . '&tab=' . $key ) ); ?>"><?php echo esc_html( $label ); ?></a>
 			<?php endforeach; ?>
 		</nav>
-
-		<?php settings_errors(); ?>
 
 		<?php if ( $tab === 'users' ) : ?>
 			<?php logliy_render_users_overview(); ?>

@@ -16,17 +16,21 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Whether Turnstile keys / helpers are available for verification.
+ *
+ * Orphaned Simple Cloudflare Turnstile options left in the DB after uninstall
+ * must NOT count as configured — only an active plugin helper or explicit
+ * wp-config constants qualify.
  */
 function logliy_turnstile_is_configured(): bool {
-	$has_secret = logliy_turnstile_secret() !== '';
-	$has_site   = logliy_turnstile_site_key() !== '';
-
-	// Plugin active with its checker — treat as usable when at least one key exists.
+	// Plugin active: options or constants are fine.
 	if ( function_exists( 'cfturnstile_check' ) ) {
-		return $has_secret || $has_site;
+		return logliy_turnstile_secret() !== '' || logliy_turnstile_site_key() !== '';
 	}
 
-	// Standalone / constants: need both to show a widget and verify.
+	// Explicit wp-config only — leftover get_option() values are ignored.
+	$has_secret = defined( 'CF_TURNSTILE_SECRET_KEY' ) && (string) CF_TURNSTILE_SECRET_KEY !== '';
+	$has_site   = defined( 'CF_TURNSTILE_SITE_KEY' ) && (string) CF_TURNSTILE_SITE_KEY !== '';
+
 	return $has_secret && $has_site;
 }
 
