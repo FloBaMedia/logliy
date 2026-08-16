@@ -227,9 +227,8 @@ function logliy_sanitize_settings( array $input, ?array $base = null ): array {
 		$color = sanitize_hex_color( (string) $input['login_bg_color'] );
 		$out['login_bg_color'] = is_string( $color ) ? $color : '';
 	}
-	if ( isset( $input['login_custom_css'] ) ) {
-		$out['login_custom_css'] = wp_strip_all_tags( (string) $input['login_custom_css'] );
-	}
+	// Arbitrary CSS is not accepted (WordPress.org guideline).
+	$out['login_custom_css'] = '';
 	if ( isset( $input['login_footer_text'] ) ) {
 		$out['login_footer_text'] = wp_kses_post( (string) $input['login_footer_text'] );
 	}

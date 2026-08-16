@@ -383,6 +383,10 @@
 
   function boot() {
     $all('.logliy-panel').forEach(initPanel);
+    if (cfg.autoRemember) {
+      var rememberMe = document.getElementById('rememberme');
+      if (rememberMe) rememberMe.checked = true;
+    }
     // Do NOT auto-start Conditional UI on load — that caused "already pending" with the button.
   }
 

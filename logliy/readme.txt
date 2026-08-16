@@ -4,7 +4,7 @@ Tags: login, passkey, passwordless, otp, woocommerce
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.0.7
+Stable tag: 0.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Passwordless WordPress login with Passkeys and Email OTP by FloBa Media. Complem
 
 == Description ==
 
-Logliy - Login Protect controls **how** users sign in: Passkeys (WebAuthn), Email one-time codes, and an optional password fallback.
+Logliy - Login Protect controls **how** users sign in: Passkeys (WebAuthn) first, with Email one-time codes and Magic Links as fallback, plus an optional password path.
 
-It is **not** a security suite. Keep [Wordfence](https://www.wordfence.com/) (or similar) for WAF, brute-force lockouts, CAPTCHA, malware scanning, and classic TOTP 2FA.
+It is **not** a security suite and **not** a generic OTP plugin. Keep [Wordfence](https://www.wordfence.com/) (or similar) for WAF, brute-force lockouts, CAPTCHA, malware scanning, and classic TOTP 2FA. Logliy is the login-method layer on top.
 
 = Features =
 
@@ -26,7 +26,7 @@ It is **not** a security suite. Keep [Wordfence](https://www.wordfence.com/) (or
 * Optional custom login URL (auto-disabled if WPS Hide Login or similar is active)
 * Session length, Remember-me duration, admin idle timeout, logout everywhere
 * Users overview (Passkeys + last login)
-* Optional custom login logo, brand, background, footer, CSS
+* Optional custom login logo, brand, background, and footer
 * Modern login UI on `wp-login.php`
 * WooCommerce classic + Blocks My Account/Checkout login forms
 * Cloudflare Turnstile compatible (verifies tokens on Passkey / Email OTP / Magic Link REST login)
@@ -61,6 +61,14 @@ When [Simple CAPTCHA with Cloudflare Turnstile](https://wordpress.org/plugins/si
 * HTTPS for Passkeys (localhost allowed for development)
 * Composer production dependencies are vendored in release builds (`vendor-prefixed/`)
 
+== External services ==
+
+This plugin can contact Cloudflare Turnstile only when a compatible Turnstile plugin is active and configured for the WordPress login form. Logliy does not load Turnstile by itself.
+
+When a visitor completes passwordless login (Passkey, Email OTP, or Magic Link) while Turnstile is required, Logliy sends the Turnstile response token and the visitor IP to Cloudflare’s siteverify API so the challenge can be validated. No other personal data is sent to Cloudflare by Logliy.
+
+This service is provided by Cloudflare: [Terms of Use](https://www.cloudflare.com/website-terms/) and [Privacy Policy](https://www.cloudflare.com/privacypolicy/).
+
 == Installation ==
 
 1. Upload the `logliy` folder to `/wp-content/plugins/`
@@ -90,6 +98,14 @@ Application Passwords and WP-CLI are not blocked by the password policy.
 With password login off, XML-RPC authentication with the **account password** is blocked by default (affects the WordPress mobile app, Jetpack, and some backup tools). Enable **Allow XML-RPC passwords** under Logliy → General if a tool still requires it. Prefer Application Passwords when the client supports them.
 
 == Changelog ==
+
+= 0.0.8 =
+* Remove arbitrary custom CSS from settings (use Additional CSS instead)
+* Enqueue remember-me check via login.js; drop inline script tag
+* Document Cloudflare Turnstile as an external service (terms + privacy)
+* Stop bundling .po/.mo and vendor PHPUnit helpers; include composer.json
+* WordPress.org loads translations automatically (no load_plugin_textdomain)
+* Limit admin notices to Logliy settings / profile screens
 
 = 0.0.7 =
 * Ignore leftover Turnstile DB options when the Captcha plugin is not active (fixes false CAPTCHA block)

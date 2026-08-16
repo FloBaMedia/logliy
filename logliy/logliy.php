@@ -3,7 +3,7 @@
  * Plugin Name:       Logliy - Login Protect (Passkey, Email Code)
  * Plugin URI:        https://github.com/FloBaMedia/logliy
  * Description:       Passwordless WordPress login with Passkeys and Email OTP. Optional password fallback.
- * Version:           0.0.7
+ * Version:           0.0.8
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            FloBa Media
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOGLIY_VERSION', '0.0.7' );
+define( 'LOGLIY_VERSION', '0.0.8' );
 define( 'LOGLIY_PLUGIN_FILE', __FILE__ );
 define( 'LOGLIY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOGLIY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -60,19 +60,6 @@ if ( is_admin() ) {
 }
 
 /**
- * Load bundled translations (EN source, DE bundled).
- */
-add_action( 'init', 'logliy_load_textdomain' );
-function logliy_load_textdomain(): void {
-	// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound
-	load_plugin_textdomain(
-		'logliy',
-		false,
-		dirname( plugin_basename( LOGLIY_PLUGIN_FILE ) ) . '/languages'
-	);
-}
-
-/**
  * Activation: defaults, DB table, capability checks notice flag.
  */
 register_activation_hook( __FILE__, 'logliy_activate' );
@@ -104,6 +91,13 @@ function logliy_maybe_upgrade(): void {
 	}
 	logliy_db_install();
 	logliy_settings_ensure_defaults();
+
+	$s = logliy_get_settings();
+	if ( ! empty( $s['login_custom_css'] ) ) {
+		$s['login_custom_css'] = '';
+		update_option( LOGLIY_OPT_SETTINGS, $s, false );
+	}
+
 	update_option( LOGLIY_OPT_VERSION, LOGLIY_VERSION, false );
 }
 

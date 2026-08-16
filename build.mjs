@@ -30,11 +30,19 @@ const SKIP_NAMES = new Set([
   ".git",
   ".gitignore",
   "node_modules",
-  "composer.json",
-  "composer.lock",
 ]);
 
-const SKIP_DIR_NAMES = new Set([".git", "node_modules", "vendor"]);
+const SKIP_DIR_NAMES = new Set([
+  ".git",
+  "node_modules",
+  "vendor",
+  "PHPUnit",
+  "Test",
+  "Tests",
+  "tests",
+]);
+
+const SKIP_FILE_EXT = new Set([".po", ".mo"]);
 
 function readPluginVersion() {
   const php = readFileSync(phpMain, "utf8");
@@ -48,6 +56,10 @@ function readPluginVersion() {
 function shouldSkip(name, isDir) {
   if (SKIP_NAMES.has(name)) return true;
   if (isDir && SKIP_DIR_NAMES.has(name)) return true;
+  if (!isDir) {
+    const dot = name.lastIndexOf(".");
+    if (dot >= 0 && SKIP_FILE_EXT.has(name.slice(dot))) return true;
+  }
   return false;
 }
 

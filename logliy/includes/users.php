@@ -169,6 +169,16 @@ function logliy_passkey_admin_nag(): void {
 		return;
 	}
 
+	$screen_id = '';
+	if ( function_exists( 'get_current_screen' ) ) {
+		$screen = get_current_screen();
+		$screen_id = $screen instanceof WP_Screen ? (string) $screen->id : '';
+	}
+	$allowed = array( 'profile', 'user-edit', 'settings_page_' . LOGLIY_ADMIN_PAGE );
+	if ( ! in_array( $screen_id, $allowed, true ) ) {
+		return;
+	}
+
 	$profile = admin_url( 'profile.php#logliy-passkeys' );
 	$dismiss = wp_nonce_url(
 		add_query_arg( 'logliy_dismiss_passkey_nag', '1' ),

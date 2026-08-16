@@ -129,11 +129,6 @@ function logliy_print_login_branding_css(): void {
 		$css[] = 'body.login.logliy-login #nav{display:none!important;}';
 	}
 
-	$custom = trim( (string) logliy_get_setting( 'login_custom_css', '' ) );
-	if ( $custom !== '' ) {
-		$css[] = $custom;
-	}
-
 	if ( $css === array() ) {
 		return;
 	}
@@ -280,10 +275,6 @@ function logliy_filter_login_language_dropdown( bool $show ): bool {
  */
 add_action( 'login_footer', 'logliy_login_footer_extras' );
 function logliy_login_footer_extras(): void {
-	if ( logliy_auto_remember() ) {
-		echo "<script>(function(){var e=document.getElementById('rememberme');if(e){e.checked=true;}})();</script>\n";
-	}
-
 	$footer = trim( (string) logliy_get_setting( 'login_footer_text', '' ) );
 	if ( $footer !== '' ) {
 		echo '<p class="logliy-login-footer">' . wp_kses_post( $footer ) . "</p>\n";

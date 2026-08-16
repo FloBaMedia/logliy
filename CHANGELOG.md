@@ -2,6 +2,16 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.0.8] — 2026-08-16
+
+### Changed
+- Removed the Custom CSS textarea; login branding stays form-based (logo, colors, footer). Extra styling belongs in Appearance → Customize → Additional CSS
+- Remember-me auto-check runs from the enqueued `login.js` instead of a raw `<script>` tag
+- Cloudflare Turnstile documented in readme as an external service, with Terms and Privacy links
+- Release ZIP includes `composer.json` and excludes `.po`/`.mo` plus vendor `PHPUnit`/`Test` helpers
+- WordPress.org translations: dropped `load_plugin_textdomain()` (requires WP 6.4+)
+- Admin notices limited to Logliy settings and (for the Passkey nag) the profile screen
+
 ## [0.0.7] — 2026-08-11
 
 ### Fixed

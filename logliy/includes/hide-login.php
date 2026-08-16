@@ -338,6 +338,10 @@ function logliy_hide_login_conflict_notice(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only on our settings screen.
+	if ( ! isset( $_GET['page'] ) || (string) $_GET['page'] !== LOGLIY_ADMIN_PAGE ) {
+		return;
+	}
 	if ( ! logliy_get_setting( 'enable_custom_login_url', false ) ) {
 		return;
 	}

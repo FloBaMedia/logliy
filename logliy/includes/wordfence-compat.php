@@ -72,6 +72,10 @@ function logliy_wordfence_compat_notice(): void {
 		update_option( 'logliy_wf_notice_dismissed', '1', false );
 		return;
 	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only on our settings screen.
+	if ( ! isset( $_GET['page'] ) || (string) $_GET['page'] !== LOGLIY_ADMIN_PAGE ) {
+		return;
+	}
 	$url = wp_nonce_url( add_query_arg( 'logliy_dismiss_wf', '1' ), 'logliy_dismiss_wf' );
 	echo '<div class="notice notice-info is-dismissible"><p>';
 	echo esc_html__( 'Logliy works alongside Wordfence: keep Wordfence for WAF and lockouts. Passkey / Email OTP / Magic Link skip Wordfence 2FA (they already are a strong factor). Wordfence 2FA still applies on the classic password path.', 'logliy' );

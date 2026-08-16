@@ -96,7 +96,7 @@ function logliy_render_import_export_card(): void {
 				<input type="file" name="logliy_import_file" id="logliy_import_file" accept="application/json,.json" required />
 			</p>
 			<p>
-				<button type="submit" class="button button-secondary" onclick="return confirm('<?php echo esc_js( __( 'Replace all Logliy settings on this site with the import file? This overwrites branding, custom CSS, redirects, and security options. Only import files you trust.', 'logliy' ) ); ?>');">
+				<button type="submit" class="button button-secondary" onclick="return confirm('<?php echo esc_js( __( 'Replace all Logliy settings on this site with the import file? This overwrites branding, redirects, and security options. Only import files you trust.', 'logliy' ) ); ?>');">
 					<?php echo esc_html__( 'Import settings', 'logliy' ); ?>
 				</button>
 			</p>
@@ -515,14 +515,7 @@ function logliy_settings_page(): void {
 						<th><label for="login_footer_text"><?php echo esc_html__( 'Login footer', 'logliy' ); ?></label></th>
 						<td>
 							<textarea class="large-text" rows="2" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[login_footer_text]" id="login_footer_text" placeholder="<?php echo esc_attr__( 'Imprint · Privacy', 'logliy' ); ?>"><?php echo esc_textarea( (string) ( $s['login_footer_text'] ?? '' ) ); ?></textarea>
-							<p class="description"><?php echo esc_html__( 'Optional text or HTML shown below the login form (links allowed).', 'logliy' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="login_custom_css"><?php echo esc_html__( 'Custom CSS', 'logliy' ); ?></label></th>
-						<td>
-							<textarea class="large-text code" rows="6" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[login_custom_css]" id="login_custom_css"><?php echo esc_textarea( (string) ( $s['login_custom_css'] ?? '' ) ); ?></textarea>
-							<p class="description"><?php echo esc_html__( 'Applied only on the WordPress login page.', 'logliy' ); ?></p>
+							<p class="description"><?php echo esc_html__( 'Optional text or HTML shown below the login form (links allowed). For extra styling use Appearance → Customize → Additional CSS.', 'logliy' ); ?></p>
 						</td>
 					</tr>
 				</table>
@@ -771,7 +764,7 @@ function logliy_settings_page(): void {
 			// Preserve values from other tabs so unchecked tabs don't wipe settings.
 			$preserve = $s;
 			$tab_keys = array(
-				'general'     => array( 'enable_passkey', 'enable_email_otp', 'enable_magic_link', 'allow_password_login', 'allow_xmlrpc_password', 'password_allowed_roles', 'hide_wp_login_password', 'onboarding_dismissed', 'login_brand_name', 'login_tagline', 'login_logo_id', 'auto_remember', 'login_identifier', 'hide_language_switcher', 'delete_settings_on_uninstall', 'hide_back_to_blog', 'hide_lost_password', 'login_bg_color', 'login_bg_image_id', 'login_footer_text', 'login_custom_css' ),
+				'general'     => array( 'enable_passkey', 'enable_email_otp', 'enable_magic_link', 'allow_password_login', 'allow_xmlrpc_password', 'password_allowed_roles', 'hide_wp_login_password', 'onboarding_dismissed', 'login_brand_name', 'login_tagline', 'login_logo_id', 'auto_remember', 'login_identifier', 'hide_language_switcher', 'delete_settings_on_uninstall', 'hide_back_to_blog', 'hide_lost_password', 'login_bg_color', 'login_bg_image_id', 'login_footer_text' ),
 				'redirects'   => array( 'redirect_login_default', 'redirect_logout_default', 'redirect_login_roles', 'redirect_logout_roles' ),
 				'passkeys'    => array( 'passkey_uv', 'passkey_resident_key' ),
 				'email_otp'   => array( 'otp_ttl_minutes', 'otp_length', 'otp_rate_limit_account', 'otp_rate_limit_ip', 'otp_rate_window_minutes', 'email_request_cooldown_seconds', 'magic_link_ttl_minutes' ),
@@ -780,6 +773,9 @@ function logliy_settings_page(): void {
 			);
 			$active_keys = $tab_keys[ $tab ] ?? array();
 			foreach ( $preserve as $pkey => $pval ) {
+				if ( $pkey === 'login_custom_css' ) {
+					continue;
+				}
 				if ( in_array( $pkey, $active_keys, true ) ) {
 					continue;
 				}
