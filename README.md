@@ -23,9 +23,21 @@ Vendor dependencies are namespace-prefixed with [Strauss](https://github.com/Bri
 ## Languages
 
 - **English** — source / default
-- **German (`de_DE`)** — bundled in `logliy/languages/`
+- Community translations via [translate.wordpress.org](https://translate.wordpress.org/) after the plugin is listed
 
-WordPress site (or user) language selects the translation.
+## wordpress.org SVN publish
+
+Working copy (outside git): `/root/projects/fbm/wp-svn/logliy`
+
+```bash
+# SVN password: https://profiles.wordpress.org/me/profile/edit/group/3/?screen=svn-password
+WP_SVN_PASSWORD='…' ./publish-to-wporg.sh
+```
+
+This syncs `logliy/` → SVN `trunk/`, ensures `tags/<version>/`, commits as `flobamedia`.
+Do not commit every git change — only release-ready versions.
+
+Public page: https://wordpress.org/plugins/logliy
 
 ## Build ZIP
 
@@ -39,11 +51,11 @@ node build.mjs
 
 Outputs (gitignored under `dist/` and repo root):
 
-- `dist/logliy-0.0.5.zip` — versioned release (version from `logliy.php`)
+- `dist/logliy-0.0.9.zip` — versioned release (version from `logliy.php`)
 - `dist/logliy-wordpress.zip` — stable alias (always latest build)
 - `dist/logliy-wordpress.version` — sidecar with the version string
 
-In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.0.5.zip`.
+In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.0.9.zip`.
 
 ## Develop
 

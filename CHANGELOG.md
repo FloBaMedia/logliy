@@ -2,6 +2,11 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.0.9] — 2026-08-24
+
+### Changed
+- Tested up to WordPress 7.1
+
 ## [0.0.8] — 2026-08-16
 
 ### Changed
