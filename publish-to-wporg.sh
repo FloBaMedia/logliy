@@ -7,9 +7,16 @@
 #
 # Usage:
 #   WP_SVN_PASSWORD='…' ./publish-to-wporg.sh
-#   WP_SVN_PASSWORD='…' ./publish-to-wporg.sh 0.0.9   # must already match source
+#   # or put the password in ~/.config/wordpress-org/svn.env (shared with CookiePeak)
 #
 set -euo pipefail
+
+if [[ -z "${WP_SVN_PASSWORD:-}" && -f "${WP_SVN_ENV:-$HOME/.config/wordpress-org/svn.env}" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${WP_SVN_ENV:-$HOME/.config/wordpress-org/svn.env}"
+  set +a
+fi
 
 PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC="$PLUGIN_DIR/logliy"
@@ -25,7 +32,7 @@ if [[ ! -d "$WC/.svn" ]]; then
 fi
 
 if [[ -z "$PASSWORD" ]]; then
-  echo "Set WP_SVN_PASSWORD to your WordPress.org SVN password." >&2
+  echo "Set WP_SVN_PASSWORD in ~/.config/wordpress-org/svn.env (chmod 600) or in the environment." >&2
   echo "Create/reset it at: https://profiles.wordpress.org/me/profile/edit/group/3/?screen=svn-password" >&2
   exit 1
 fi
@@ -64,35 +71,45 @@ rsync -a --delete \
   --exclude 'tests/' \
   "$SRC/" "$WC/trunk/"
 
+ASSETS_SRC="$PLUGIN_DIR/wporg-assets"
+if [[ -d "$ASSETS_SRC" ]]; then
+  echo "==> Syncing wordpress.org assets from $ASSETS_SRC"
+  mkdir -p "$WC/assets"
+  rsync -a --delete --exclude '.DS_Store' --exclude '.svn' "$ASSETS_SRC/" "$WC/assets/"
+fi
+
 cd "$WC"
 svn add --force trunk assets >/dev/null
 svn status | awk '/^\?/ {print $2}' | while read -r f; do
   [[ -e "$f" ]] && svn add --force "$f" >/dev/null || true
 done
 
-if [[ ! -d "tags/$VERSION" ]]; then
-  echo "==> Creating tags/$VERSION from trunk"
-  svn copy trunk "tags/$VERSION"
-else
-  echo "==> tags/$VERSION already exists (will update trunk only; tag left as-is)"
-fi
-
-echo "==> Pending changes:"
-svn status
-
-if [[ -d "tags/$VERSION/.svn" ]] || svn status "tags/$VERSION" 2>/dev/null | grep -q '^A'; then
-  MSG="Release Logliy ${VERSION} - wordpress.org publish (trunk, tag, assets)"
-else
-  MSG="Release Logliy ${VERSION} - update trunk"
-fi
-
-echo "==> Committing as $USER..."
-svn commit \
+# Do not svn-copy an uncommitted trunk — that doubles the upload and times out.
+# Commit trunk + directory assets first, then copy the tag on the server.
+echo "==> Committing trunk/assets as $USER..."
+svn commit trunk assets \
   --username "$USER" \
   --password "$PASSWORD" \
   --non-interactive \
   --no-auth-cache \
-  -m "$MSG"
+  --config-option servers:global:http-timeout=6000 \
+  -m "Release Logliy ${VERSION} - wordpress.org trunk and assets"
+
+svn update --non-interactive >/dev/null
+
+if [[ ! -d "tags/$VERSION" ]]; then
+  echo "==> Creating tags/$VERSION from committed trunk"
+  svn copy trunk "tags/$VERSION"
+  svn commit "tags/$VERSION" \
+    --username "$USER" \
+    --password "$PASSWORD" \
+    --non-interactive \
+    --no-auth-cache \
+    --config-option servers:global:http-timeout=6000 \
+    -m "Release Logliy ${VERSION} - tag"
+else
+  echo "==> tags/$VERSION already exists"
+fi
 
 echo "Done. Public page: https://wordpress.org/plugins/logliy"
 echo "SVN tag: https://plugins.svn.wordpress.org/logliy/tags/$VERSION"

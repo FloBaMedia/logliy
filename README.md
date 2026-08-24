@@ -8,6 +8,7 @@ License: [GPLv2 or later](LICENSE) · Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ```
 logliy/          Plugin root (upload this folder to wp-content/plugins/)
+wporg-assets/    wordpress.org directory icon + banner (SVN `assets/`)
 build.mjs        Builds WordPress-ready ZIP (forward-slash entries)
 dist/            Output: logliy-{version}.zip + logliy-wordpress.zip
 ```
@@ -30,8 +31,8 @@ Vendor dependencies are namespace-prefixed with [Strauss](https://github.com/Bri
 Working copy (outside git): `/root/projects/fbm/wp-svn/logliy`
 
 ```bash
-# SVN password: https://profiles.wordpress.org/me/profile/edit/group/3/?screen=svn-password
-WP_SVN_PASSWORD='…' ./publish-to-wporg.sh
+# Password lives in ~/.config/wordpress-org/svn.env (shared with CookiePeak)
+./publish-to-wporg.sh
 ```
 
 This syncs `logliy/` → SVN `trunk/`, ensures `tags/<version>/`, commits as `flobamedia`.
