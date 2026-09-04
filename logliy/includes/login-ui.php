@@ -70,6 +70,7 @@ function logliy_register_login_assets(): void {
 			'enablePasskey'     => (bool) logliy_get_setting( 'enable_passkey', true ),
 			'enableEmailOtp'    => (bool) logliy_get_setting( 'enable_email_otp', true ),
 			'enableMagicLink'   => (bool) logliy_get_setting( 'enable_magic_link', true ),
+			'enableOidc'        => logliy_oidc_is_ready(),
 			'allowPassword'     => $password_ok,
 			'hidePassword'      => (bool) logliy_get_setting( 'hide_wp_login_password', true ) && ! $password_ok,
 			'autoRemember'      => $auto_remember,
@@ -80,6 +81,7 @@ function logliy_register_login_assets(): void {
 				'passkey'          => __( 'Passkey', 'logliy' ),
 				'emailCode'        => __( 'Email code', 'logliy' ),
 				'magicLink'        => __( 'Magic link', 'logliy' ),
+				'sso'              => __( 'SSO', 'logliy' ),
 				'password'         => __( 'Password', 'logliy' ),
 				'sendCode'         => __( 'Send code', 'logliy' ),
 				'sendMagic'        => __( 'Send magic link', 'logliy' ),
@@ -169,6 +171,7 @@ function logliy_get_login_panel_html( string $context = 'wp-login' ): string {
 	$passkey       = (bool) logliy_get_setting( 'enable_passkey', true );
 	$otp           = (bool) logliy_get_setting( 'enable_email_otp', true );
 	$magic         = (bool) logliy_get_setting( 'enable_magic_link', true );
+	$oidc          = logliy_oidc_is_ready();
 	$brand         = logliy_login_brand_name();
 	$tagline       = logliy_login_tagline();
 	$logo_url      = logliy_login_logo_url();
@@ -178,7 +181,7 @@ function logliy_get_login_panel_html( string $context = 'wp-login' ): string {
 	$input_type    = logliy_login_identifier_mode() === 'email' ? 'email' : 'text';
 	$autocomplete  = logliy_login_identifier_mode() === 'email' ? 'username email' : 'username';
 
-	$active = $passkey ? 'passkey' : ( $otp ? 'otp' : ( $magic ? 'magic' : 'password' ) );
+	$active = $passkey ? 'passkey' : ( $otp ? 'otp' : ( $magic ? 'magic' : ( $oidc ? 'oidc' : 'password' ) ) );
 
 	ob_start();
 	?>
@@ -204,6 +207,9 @@ function logliy_get_login_panel_html( string $context = 'wp-login' ): string {
 			<?php endif; ?>
 			<?php if ( $magic ) : ?>
 				<button type="button" class="logliy-tab<?php echo $active === 'magic' ? ' is-active' : ''; ?>" role="tab" data-logliy-tab="magic" aria-selected="<?php echo $active === 'magic' ? 'true' : 'false'; ?>"><?php echo esc_html__( 'Magic link', 'logliy' ); ?></button>
+			<?php endif; ?>
+			<?php if ( $oidc ) : ?>
+				<button type="button" class="logliy-tab<?php echo $active === 'oidc' ? ' is-active' : ''; ?>" role="tab" data-logliy-tab="oidc" aria-selected="<?php echo $active === 'oidc' ? 'true' : 'false'; ?>"><?php echo esc_html__( 'SSO', 'logliy' ); ?></button>
 			<?php endif; ?>
 			<?php if ( $password_ok ) : ?>
 				<button type="button" class="logliy-tab" role="tab" data-logliy-tab="password" aria-selected="false"><?php echo esc_html__( 'Password', 'logliy' ); ?></button>
@@ -247,6 +253,14 @@ function logliy_get_login_panel_html( string $context = 'wp-login' ): string {
 		</div>
 		<?php endif; ?>
 
+		<?php if ( $oidc ) : ?>
+		<div class="logliy-pane<?php echo $active === 'oidc' ? ' is-active' : ''; ?>" data-logliy-pane="oidc">
+			<p class="logliy-hint"><?php echo esc_html__( 'Sign in with your organization account.', 'logliy' ); ?></p>
+			<label class="logliy-check"><input type="checkbox" data-logliy-remember <?php checked( $auto_remember ); ?> /> <?php echo esc_html__( 'Remember me', 'logliy' ); ?></label>
+			<a class="logliy-btn logliy-btn-primary" data-logliy-oidc href="<?php echo esc_url( logliy_oidc_start_url( $context ) ); ?>"><?php echo esc_html( logliy_oidc_button_label() ); ?></a>
+		</div>
+		<?php endif; ?>
+
 		<?php if ( $password_ok ) : ?>
 		<div class="logliy-pane" data-logliy-pane="password">
 			<p class="logliy-hint"><?php echo esc_html__( 'Use the password fields below.', 'logliy' ); ?></p>
@@ -283,6 +297,12 @@ function logliy_login_footer_extras(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	if ( ! empty( $_GET['logliy_magic_error'] ) ) {
 		echo '<p class="logliy-login-footer is-error" role="alert">' . esc_html__( 'Magic link invalid or expired. Please request a new one.', 'logliy' ) . "</p>\n";
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( ! empty( $_GET['logliy_oidc_error'] ) ) {
+		$code = sanitize_key( (string) wp_unslash( $_GET['logliy_oidc_error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		echo '<p class="logliy-login-footer is-error" role="alert">' . esc_html( logliy_oidc_error_message( $code ) ) . "</p>\n";
 	}
 }
 

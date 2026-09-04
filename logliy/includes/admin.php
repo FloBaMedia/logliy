@@ -282,6 +282,7 @@ function logliy_settings_page(): void {
 		'redirects'   => __( 'Redirects', 'logliy' ),
 		'passkeys'    => __( 'Passkeys', 'logliy' ),
 		'email_otp'   => __( 'Email OTP', 'logliy' ),
+		'sso'         => __( 'SSO', 'logliy' ),
 		'woocommerce' => __( 'WooCommerce', 'logliy' ),
 		'users'       => __( 'Users', 'logliy' ),
 		'advanced'    => __( 'Advanced', 'logliy' ),
@@ -305,7 +306,7 @@ function logliy_settings_page(): void {
 					<?php echo esc_html__( 'Logliy – LoginProtect', 'logliy' ); ?>
 					<span class="lg-version"><?php echo esc_html( 'v' . LOGLIY_VERSION ); ?></span>
 				</h1>
-				<p><?php echo esc_html__( 'Passwordless login with Passkeys and Email codes.', 'logliy' ); ?></p>
+				<p><?php echo esc_html__( 'Passwordless login with Passkeys, Email codes, and optional SSO.', 'logliy' ); ?></p>
 			</div>
 		</div>
 
@@ -351,6 +352,12 @@ function logliy_settings_page(): void {
 						<td>
 							<label class="lg-toggle"><input type="checkbox" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[enable_magic_link]" value="1" <?php checked( ! empty( $s['enable_magic_link'] ) ); ?> /><span class="lg-toggle-slider"></span></label>
 							<p class="description"><?php echo esc_html__( 'One-click sign-in link sent by email.', 'logliy' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'SSO (OpenID Connect)', 'logliy' ); ?></th>
+						<td>
+							<p class="description"><?php echo esc_html__( 'Configured on the SSO tab. The login form only shows SSO when Issuer, Client ID, and Client Secret are set.', 'logliy' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -467,7 +474,7 @@ function logliy_settings_page(): void {
 					<tr>
 						<th><label for="login_tagline"><?php echo esc_html__( 'Tagline', 'logliy' ); ?></label></th>
 						<td>
-							<input type="text" class="large-text" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[login_tagline]" id="login_tagline" value="<?php echo esc_attr( (string) $s['login_tagline'] ); ?>" placeholder="<?php echo esc_attr__( 'Sign in with a Passkey or Email code.', 'logliy' ); ?>" />
+							<input type="text" class="large-text" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[login_tagline]" id="login_tagline" value="<?php echo esc_attr( (string) $s['login_tagline'] ); ?>" placeholder="<?php echo esc_attr( logliy_login_tagline() ); ?>" />
 						</td>
 					</tr>
 					<tr>
@@ -629,6 +636,70 @@ function logliy_settings_page(): void {
 					</tr>
 				</table>
 			</div>
+			<?php elseif ( $tab === 'sso' ) : ?>
+			<div class="lg-card">
+				<h2><?php echo esc_html__( 'SSO (OpenID Connect)', 'logliy' ); ?></h2>
+				<p class="description"><?php echo esc_html__( 'Authorization Code flow with PKCE. The SSO tab on the login form appears only when SSO is enabled and Issuer, Client ID, and Client Secret are filled in.', 'logliy' ); ?></p>
+				<?php if ( ! empty( $s['enable_oidc'] ) && ! logliy_oidc_is_ready() ) : ?>
+					<p class="notice notice-warning" style="margin:12px 0 0;padding:8px 12px;"><?php echo esc_html__( 'SSO is enabled, but it will stay hidden on the login form until Issuer, Client ID, and Client Secret are set.', 'logliy' ); ?></p>
+				<?php endif; ?>
+				<table class="form-table lg-form-table" role="presentation">
+					<tr>
+						<th><?php echo esc_html__( 'Enable SSO', 'logliy' ); ?></th>
+						<td>
+							<label class="lg-toggle"><input type="checkbox" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[enable_oidc]" value="1" <?php checked( ! empty( $s['enable_oidc'] ) ); ?> /><span class="lg-toggle-slider"></span></label>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="oidc_issuer"><?php echo esc_html__( 'Issuer URL', 'logliy' ); ?></label></th>
+						<td>
+							<input type="url" class="regular-text code" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[oidc_issuer]" id="oidc_issuer" value="<?php echo esc_attr( (string) ( $s['oidc_issuer'] ?? '' ) ); ?>" placeholder="https://login.example.com/realms/site" autocomplete="off" />
+							<p class="description"><?php echo esc_html__( 'OpenID Provider issuer (https). Logliy loads {issuer}/.well-known/openid-configuration automatically.', 'logliy' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="oidc_client_id"><?php echo esc_html__( 'Client ID', 'logliy' ); ?></label></th>
+						<td>
+							<input type="text" class="regular-text code" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[oidc_client_id]" id="oidc_client_id" value="<?php echo esc_attr( (string) ( $s['oidc_client_id'] ?? '' ) ); ?>" autocomplete="off" />
+						</td>
+					</tr>
+					<tr>
+						<th><label for="oidc_client_secret"><?php echo esc_html__( 'Client Secret', 'logliy' ); ?></label></th>
+						<td>
+							<input type="password" class="regular-text" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[oidc_client_secret]" id="oidc_client_secret" value="" autocomplete="new-password" />
+							<p class="description">
+								<?php
+								if ( (string) ( $s['oidc_client_secret'] ?? '' ) !== '' ) {
+									echo esc_html__( 'A secret is already stored. Leave this field empty to keep it.', 'logliy' );
+								} else {
+									echo esc_html__( 'Confidential client secret from your identity provider.', 'logliy' );
+								}
+								?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="oidc_button_label"><?php echo esc_html__( 'Button label', 'logliy' ); ?></label></th>
+						<td>
+							<input type="text" class="regular-text" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[oidc_button_label]" id="oidc_button_label" value="<?php echo esc_attr( (string) ( $s['oidc_button_label'] ?? '' ) ); ?>" placeholder="<?php echo esc_attr__( 'Continue with SSO', 'logliy' ); ?>" />
+						</td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Create users', 'logliy' ); ?></th>
+						<td>
+							<label class="lg-toggle"><input type="checkbox" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[oidc_create_users]" value="1" <?php checked( ! empty( $s['oidc_create_users'] ) ); ?> /><span class="lg-toggle-slider"></span></label>
+							<p class="description"><?php echo esc_html__( 'Off by default. When off, only existing WordPress users with a matching email can sign in. When on, a new account is created with the site default role.', 'logliy' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="oidc_redirect_uri"><?php echo esc_html__( 'Redirect URI', 'logliy' ); ?></label></th>
+						<td>
+							<input type="text" class="large-text code" id="oidc_redirect_uri" value="<?php echo esc_attr( logliy_oidc_redirect_uri() ); ?>" readonly onclick="this.select();" />
+							<p class="description"><?php echo esc_html__( 'Register this exact Redirect URI at your identity provider. ID tokens must be signed with RS256.', 'logliy' ); ?></p>
+						</td>
+					</tr>
+				</table>
+			</div>
 			<?php elseif ( $tab === 'woocommerce' ) : ?>
 			<div class="lg-card">
 				<h2><?php echo esc_html__( 'WooCommerce', 'logliy' ); ?></h2>
@@ -768,12 +839,13 @@ function logliy_settings_page(): void {
 				'redirects'   => array( 'redirect_login_default', 'redirect_logout_default', 'redirect_login_roles', 'redirect_logout_roles' ),
 				'passkeys'    => array( 'passkey_uv', 'passkey_resident_key' ),
 				'email_otp'   => array( 'otp_ttl_minutes', 'otp_length', 'otp_rate_limit_account', 'otp_rate_limit_ip', 'otp_rate_window_minutes', 'email_request_cooldown_seconds', 'magic_link_ttl_minutes' ),
+				'sso'         => array( 'enable_oidc', 'oidc_issuer', 'oidc_client_id', 'oidc_client_secret', 'oidc_button_label', 'oidc_create_users' ),
 				'woocommerce' => array( 'wc_enable_myaccount', 'wc_enable_checkout', 'wc_enable_blocks' ),
 				'advanced'    => array( 'rp_id', 'rp_name', 'related_origins', 'enable_custom_login_url', 'custom_login_slug', 'session_expire_hours', 'session_remember_days', 'admin_idle_timeout_minutes' ),
 			);
 			$active_keys = $tab_keys[ $tab ] ?? array();
 			foreach ( $preserve as $pkey => $pval ) {
-				if ( $pkey === 'login_custom_css' ) {
+				if ( $pkey === 'login_custom_css' || $pkey === 'oidc_client_secret' ) {
 					continue;
 				}
 				if ( in_array( $pkey, $active_keys, true ) ) {

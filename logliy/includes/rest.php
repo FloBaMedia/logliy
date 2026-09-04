@@ -165,6 +165,7 @@ function logliy_rest_config( WP_REST_Request $request ) {
 			'enable_passkey'       => (bool) logliy_get_setting( 'enable_passkey', true ),
 			'enable_email_otp'     => (bool) logliy_get_setting( 'enable_email_otp', true ),
 			'enable_magic_link'    => (bool) logliy_get_setting( 'enable_magic_link', true ),
+			'enable_oidc'          => logliy_oidc_is_ready(),
 			'allow_password_login' => $password_ok,
 			'rp_id'                => logliy_rp_id(),
 			'https'                => logliy_is_https() || logliy_rp_id() === 'localhost',

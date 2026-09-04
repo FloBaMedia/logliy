@@ -345,6 +345,45 @@
         }
       });
     }
+
+    var ssoLink = $('[data-logliy-oidc]', panel);
+    if (ssoLink) {
+      var ssoPane = $('[data-logliy-pane="oidc"]', panel);
+      var ssoRememberBox = ssoPane ? $('[data-logliy-remember]', ssoPane) : null;
+      var syncSsoRemember = function () {
+        try {
+          var u = new URL(ssoLink.getAttribute('href'), window.location.origin);
+          var on = ssoRememberBox ? !!ssoRememberBox.checked : remember(panel);
+          if (on) u.searchParams.set('remember', '1');
+          else u.searchParams.delete('remember');
+          ssoLink.setAttribute('href', u.toString());
+        } catch (e) {
+          /* ignore invalid URL */
+        }
+      };
+      if (ssoRememberBox) {
+        ssoRememberBox.addEventListener('change', syncSsoRemember);
+      }
+      ssoLink.addEventListener('click', function (e) {
+        if (!ensureCaptcha()) {
+          e.preventDefault();
+          showMsg(panel, cfg.i18n.captchaRequired, false);
+          return;
+        }
+        syncSsoRemember();
+        var token = getTurnstileToken();
+        if (token) {
+          e.preventDefault();
+          try {
+            var u = new URL(ssoLink.getAttribute('href'), window.location.origin);
+            u.searchParams.set('cf_turnstile_response', token);
+            window.location.href = u.toString();
+          } catch (err) {
+            window.location.href = ssoLink.href;
+          }
+        }
+      });
+    }
   }
 
   /**

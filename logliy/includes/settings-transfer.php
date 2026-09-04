@@ -17,6 +17,7 @@ function logliy_settings_export_site_keys(): array {
 		'rp_id',            // Hostname differs per site.
 		'login_logo_id',    // Attachment IDs are local.
 		'login_bg_image_id',
+		'oidc_client_secret',
 	);
 }
 
@@ -66,6 +67,7 @@ function logliy_settings_import_payload( array $payload ) {
 
 	$defaults = logliy_default_settings();
 	$input    = array_intersect_key( $raw, $defaults );
+	unset( $input['oidc_client_secret'] );
 
 	foreach ( logliy_settings_export_site_keys() as $key ) {
 		if ( ! isset( $input[ $key ] ) ) {
@@ -183,7 +185,7 @@ function logliy_import_admin_notices(): void {
 	}
 
 	$messages = array(
-		'ok'      => array( 'success', __( 'Settings imported successfully. Review Relying Party ID and branding images on this site.', 'logliy' ) ),
+		'ok'      => array( 'success', __( 'Settings imported successfully. Review Relying Party ID, branding images, and SSO client secret on this site.', 'logliy' ) ),
 		'missing' => array( 'error', __( 'Please choose a Logliy settings JSON file to import.', 'logliy' ) ),
 		'upload'  => array( 'error', __( 'The upload failed. Please try again.', 'logliy' ) ),
 		'size'    => array( 'error', __( 'The import file is empty or too large (max 512 KB).', 'logliy' ) ),

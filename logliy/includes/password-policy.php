@@ -25,6 +25,16 @@ function logliy_password_login_globally_allowed(): bool {
 }
 
 /**
+ * Message shown when password login is blocked.
+ */
+function logliy_password_disabled_message(): string {
+	if ( function_exists( 'logliy_oidc_is_ready' ) && logliy_oidc_is_ready() ) {
+		return __( 'Password login is disabled for this account. Use a Passkey, Email code, or SSO instead.', 'logliy' );
+	}
+	return __( 'Password login is disabled for this account. Use a Passkey or Email code instead.', 'logliy' );
+}
+
+/**
  * Per-user meta: allow password login for this user.
  */
 function logliy_user_password_allowed( int $user_id ): bool {
@@ -149,7 +159,7 @@ function logliy_filter_authenticate( $user, string $username, string $password )
 
 	return new WP_Error(
 		'logliy_password_disabled',
-		__( 'Password login is disabled for this account. Use a Passkey or Email code instead.', 'logliy' )
+		logliy_password_disabled_message()
 	);
 }
 add_filter( 'authenticate', 'logliy_filter_authenticate', 30, 3 );
@@ -176,7 +186,7 @@ function logliy_filter_wp_authenticate_user( $user ) {
 	}
 	return new WP_Error(
 		'logliy_password_disabled',
-		__( 'Password login is disabled for this account. Use a Passkey or Email code instead.', 'logliy' )
+		logliy_password_disabled_message()
 	);
 }
 add_filter( 'wp_authenticate_user', 'logliy_filter_wp_authenticate_user', 30 );

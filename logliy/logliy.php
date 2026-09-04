@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       Logliy - Login Protect (Passkey, Email Code)
+ * Plugin Name:       Logliy - Login Protect (Passkey, Email, SSO)
  * Plugin URI:        https://github.com/FloBaMedia/logliy
- * Description:       Passwordless WordPress login with Passkeys and Email OTP. Optional password fallback.
- * Version:           0.0.9
+ * Description:       Passwordless WordPress login with Passkeys, Email OTP, Magic Link, and optional SSO (OpenID Connect).
+ * Version:           0.1.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            FloBa Media
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOGLIY_VERSION', '0.0.9' );
+define( 'LOGLIY_VERSION', '0.1.0' );
 define( 'LOGLIY_PLUGIN_FILE', __FILE__ );
 define( 'LOGLIY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOGLIY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -44,6 +44,7 @@ require_once LOGLIY_PLUGIN_DIR . 'includes/password-policy.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/captcha.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/email-otp.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/magic-link.php';
+require_once LOGLIY_PLUGIN_DIR . 'includes/oidc.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/passkey.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/rest.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/login-ui.php';
@@ -138,7 +139,7 @@ function logliy_is_https(): bool {
  * Runs authenticate / wp_authenticate_user so Wordfence lockouts, Multisite
  * flags and other plugins can still reject the session. Wordfence Login
  * Security 2FA is suspended here — Passkey/OTP/Magic Link already replace
- * the password factor.
+ * the password factor (including SSO).
  *
  * @param WP_User $user     Authenticated user.
  * @param bool    $remember Remember me.

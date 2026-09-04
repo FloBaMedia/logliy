@@ -43,7 +43,9 @@ $wpdb->query(
 		'logliy_allow_password',
 		'logliy_dismiss_passkey_nag',
 		'logliy_last_login',
-		'logliy_last_activity'
+		'logliy_last_activity',
+		'logliy_oidc_sub',
+		'logliy_oidc_iss',
 	)"
 );
 

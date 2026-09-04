@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * Successful logins call wp_login + wp_set_auth_cookie so Wordfence sees normal sessions.
  *
  * Wordfence TOTP 2FA continues to apply on the classic password path.
- * Passkey / Email OTP / Magic Link are primary (password-replacement) factors —
+ * Passkey / Email OTP / Magic Link / SSO are primary (password-replacement) factors —
  * Wordfence Login Security 2FA is suspended only for those complete_login calls
  * (IP lockouts via wordfence::authenticateFilter remain active).
  */

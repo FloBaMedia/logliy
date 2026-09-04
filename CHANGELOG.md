@@ -2,6 +2,14 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.1.0] — 2026-09-03
+
+### Added
+- Optional SSO login via OpenID Connect (authorization code + PKCE, RS256). The SSO tab is shown only when SSO is enabled and Issuer, Client ID, and Client Secret are set.
+
+### Changed
+- Plugin name and descriptions include SSO (Passkey, Email, SSO)
+
 ## [0.0.9] — 2026-08-24
 
 ### Changed

@@ -1,18 +1,18 @@
-=== Logliy - Login Protect (Passkey, Email Code) ===
+=== Logliy - Login Protect (Passkey, Email, SSO) ===
 Contributors: flobamedia
-Tags: login, passkey, passwordless, otp, woocommerce
+Tags: login, passkey, passwordless, sso, otp
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.0.9
+Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Passwordless WordPress login with Passkeys and Email OTP by FloBa Media. Complements Wordfence — does not replace it.
+Passwordless WordPress login with Passkeys, Email OTP, Magic Link, and optional SSO (OpenID Connect) by FloBa Media. Complements Wordfence — does not replace it.
 
 == Description ==
 
-Logliy - Login Protect controls **how** users sign in: Passkeys (WebAuthn) first, with Email one-time codes and Magic Links as fallback, plus an optional password path.
+Logliy - Login Protect controls **how** users sign in: Passkeys (WebAuthn) first, with Email one-time codes and Magic Links as fallback, plus optional SSO (OpenID Connect) and an optional password path.
 
 It is **not** a security suite and **not** a generic OTP plugin. Keep [Wordfence](https://www.wordfence.com/) (or similar) for WAF, brute-force lockouts, CAPTCHA, malware scanning, and classic TOTP 2FA. Logliy is the login-method layer on top.
 
@@ -21,6 +21,7 @@ It is **not** a security suite and **not** a generic OTP plugin. Keep [Wordfence
 * Passkey login and registration (discoverable credentials, Conditional UI where available)
 * Email OTP login via `wp_mail`
 * Magic link (one-click email) login
+* Optional SSO via OpenID Connect (shown on the login form only when fully configured)
 * Password login **off by default**, re-enable site-wide and/or per role / per user
 * Role-based login/logout redirects
 * Optional custom login URL (auto-disabled if WPS Hide Login or similar is active)
@@ -29,9 +30,9 @@ It is **not** a security suite and **not** a generic OTP plugin. Keep [Wordfence
 * Optional custom login logo, brand, background, and footer
 * Modern login UI on `wp-login.php`
 * WooCommerce classic + Blocks My Account/Checkout login forms
-* Cloudflare Turnstile compatible (verifies tokens on Passkey / Email OTP / Magic Link REST login)
+* Cloudflare Turnstile compatible (verifies tokens on Passkey / Email OTP / Magic Link / SSO login)
 * REST API namespace `logliy/v1`
-* Rate limits for OTP and Passkey auth
+* Rate limits for OTP, Passkey, and SSO auth
 * Wordfence-friendly: fires `wp_login_failed` / `wp_login` and uses normal auth cookies
 * Emergency override: `define( 'LOGLIY_ALLOW_PASSWORD', true );` in `wp-config.php`
 
@@ -39,13 +40,13 @@ It is **not** a security suite and **not** a generic OTP plugin. Keep [Wordfence
 
 * Failed Logliy attempts trigger `wp_login_failed` so Wordfence lockouts still apply
 * Successful Logliy logins use `wp_set_auth_cookie` + `wp_login` like a normal `wp_signon`
-* Wordfence IP lockouts still run during passwordless login; Wordfence Login Security 2FA is skipped for Passkey / Email OTP / Magic Link (those methods already replace the password)
+* Wordfence IP lockouts still run during passwordless login; Wordfence Login Security 2FA is skipped for Passkey / Email OTP / Magic Link / SSO (those methods already replace the password)
 * Wordfence TOTP 2FA continues to apply on the classic password path
 * Logliy does **not** remove Wordfence hooks globally — only suspends LS 2FA for the passwordless completion step
 
 = Cloudflare Turnstile =
 
-When [Simple CAPTCHA with Cloudflare Turnstile](https://wordpress.org/plugins/simple-cloudflare-turnstile/) (or equivalent) is enabled on the WordPress login form, Logliy requires a valid Turnstile token for Email OTP and Passkey REST authentication. The password path continues to use the Turnstile plugin's own `authenticate` check.
+When [Simple CAPTCHA with Cloudflare Turnstile](https://wordpress.org/plugins/simple-cloudflare-turnstile/) (or equivalent) is enabled on the WordPress login form, Logliy requires a valid Turnstile token for Email OTP, Passkey, Magic Link, and SSO login. The password path continues to use the Turnstile plugin's own `authenticate` check.
 
 = WooCommerce =
 
@@ -65,20 +66,29 @@ When [Simple CAPTCHA with Cloudflare Turnstile](https://wordpress.org/plugins/si
 
 This plugin can contact Cloudflare Turnstile only when a compatible Turnstile plugin is active and configured for the WordPress login form. Logliy does not load Turnstile by itself.
 
-When a visitor completes passwordless login (Passkey, Email OTP, or Magic Link) while Turnstile is required, Logliy sends the Turnstile response token and the visitor IP to Cloudflare’s siteverify API so the challenge can be validated. No other personal data is sent to Cloudflare by Logliy.
+When a visitor completes passwordless login (Passkey, Email OTP, Magic Link, or SSO) while Turnstile is required, Logliy sends the Turnstile response token and the visitor IP to Cloudflare’s siteverify API so the challenge can be validated. No other personal data is sent to Cloudflare by Logliy.
 
 This service is provided by Cloudflare: [Terms of Use](https://www.cloudflare.com/website-terms/) and [Privacy Policy](https://www.cloudflare.com/privacypolicy/).
+
+When SSO (OpenID Connect) is enabled, Logliy contacts the OpenID Provider you configure (Issuer / discovery, token, and JWKS URLs) so visitors can sign in with that identity provider. Logliy does not send login data to FloBa Media. The identity provider receives standard OpenID Connect authentication data (such as the authorization request and, after sign-in, token exchange). Which personal data that provider stores is defined by that provider.
+
+You must register this site’s Redirect URI at the provider and accept that provider’s own terms of service and privacy policy before enabling SSO.
 
 == Installation ==
 
 1. Upload the `logliy` folder to `/wp-content/plugins/`
-2. Activate **Logliy - Login Protect (Passkey, Email Code)**
+2. Activate **Logliy - Login Protect (Passkey, Email, SSO)**
 3. Open **Settings → Logliy**
 4. Register a Passkey on your profile and/or test Email OTP **before** relying on passwordless-only mode
-5. Optionally set a custom login logo / brand name under General
-6. Optionally enable password login again under General
+5. Optionally enable SSO under the SSO tab (login form shows it only when fully configured)
+6. Optionally set a custom login logo / brand name under General
+7. Optionally enable password login again under General
 
 == Frequently Asked Questions ==
+
+= How do I enable SSO? =
+
+Open **Settings → Logliy → SSO**. Enable SSO and enter your OpenID Provider Issuer URL, Client ID, and Client Secret. Register the shown Redirect URI at the provider. The SSO tab appears on the login form only when those three fields are set. ID tokens must be signed with RS256. New WordPress users are not created unless you turn on **Create users**.
 
 = I locked myself out =
 
@@ -98,6 +108,10 @@ Application Passwords and WP-CLI are not blocked by the password policy.
 With password login off, XML-RPC authentication with the **account password** is blocked by default (affects the WordPress mobile app, Jetpack, and some backup tools). Enable **Allow XML-RPC passwords** under Logliy → General if a tool still requires it. Prefer Application Passwords when the client supports them.
 
 == Changelog ==
+
+= 0.1.0 =
+* Optional SSO login via OpenID Connect (authorization code + PKCE). Shown on the login form only when fully configured.
+* Plugin name updated to include SSO
 
 = 0.0.9 =
 * Tested up to WordPress 7.1

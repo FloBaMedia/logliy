@@ -1,6 +1,6 @@
 # Logliy – LoginProtect
 
-WordPress plugin for passwordless login (Passkeys, Email OTP, Magic Link) by FloBa Media.
+WordPress plugin for passwordless login (Passkeys, Email OTP, Magic Link, optional SSO) by FloBa Media.
 
 License: [GPLv2 or later](LICENSE) · Changelog: [CHANGELOG.md](CHANGELOG.md)
 
@@ -52,11 +52,11 @@ node build.mjs
 
 Outputs (gitignored under `dist/` and repo root):
 
-- `dist/logliy-0.0.9.zip` — versioned release (version from `logliy.php`)
+- `dist/logliy-0.1.0.zip` — versioned release (version from `logliy.php`)
 - `dist/logliy-wordpress.zip` — stable alias (always latest build)
 - `dist/logliy-wordpress.version` — sidecar with the version string
 
-In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.0.9.zip`.
+In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.1.0.zip`.
 
 ## Develop
 

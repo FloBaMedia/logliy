@@ -1,6 +1,6 @@
 {
     "name": "floba-media/logliy",
-    "description": "Logliy LoginProtect WordPress plugin",
+    "description": "Passwordless WordPress login with Passkeys, Email OTP, Magic Link, and optional SSO",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "require": {

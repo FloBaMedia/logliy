@@ -229,6 +229,13 @@ body.login.logliy-login .logliy-input:focus,
   transition: transform 0.15s ease, background 0.15s, opacity 0.15s;
 }
 
+a.logliy-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
 .logliy-btn:active {
   transform: scale(0.985);
 }

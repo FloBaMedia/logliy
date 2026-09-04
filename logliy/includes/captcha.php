@@ -88,6 +88,12 @@ function logliy_turnstile_token_from_request( $request = null ): string {
 	if ( $token === '' && isset( $_POST['cf-turnstile-response'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$token = sanitize_text_field( wp_unslash( (string) $_POST['cf-turnstile-response'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 	}
+	if ( $token === '' && isset( $_GET['cf_turnstile_response'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$token = sanitize_text_field( wp_unslash( (string) $_GET['cf_turnstile_response'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
+	if ( $token === '' && isset( $_GET['cf-turnstile-response'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$token = sanitize_text_field( wp_unslash( (string) $_GET['cf-turnstile-response'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
 	return sanitize_text_field( $token );
 }
 

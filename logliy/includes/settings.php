@@ -17,6 +17,12 @@ function logliy_default_settings(): array {
 		'enable_passkey'               => true,
 		'enable_email_otp'             => true,
 		'enable_magic_link'            => true,
+		'enable_oidc'                  => false,
+		'oidc_issuer'                  => '',
+		'oidc_client_id'               => '',
+		'oidc_client_secret'           => '',
+		'oidc_button_label'            => '',
+		'oidc_create_users'            => false,
 		'allow_password_login'         => false,
 		'allow_xmlrpc_password'        => false,
 		'password_allowed_roles'       => array(),
@@ -136,6 +142,8 @@ function logliy_sanitize_settings( array $input, ?array $base = null ): array {
 		'enable_passkey',
 		'enable_email_otp',
 		'enable_magic_link',
+		'enable_oidc',
+		'oidc_create_users',
 		'allow_password_login',
 		'allow_xmlrpc_password',
 		'wc_enable_myaccount',
@@ -260,6 +268,24 @@ function logliy_sanitize_settings( array $input, ?array $base = null ): array {
 		$out['login_identifier'] = (string) $input['login_identifier'];
 	}
 
+	if ( isset( $input['oidc_issuer'] ) ) {
+		$out['oidc_issuer'] = logliy_sanitize_oidc_issuer( (string) $input['oidc_issuer'] );
+	}
+	if ( isset( $input['oidc_client_id'] ) ) {
+		$out['oidc_client_id'] = sanitize_text_field( (string) $input['oidc_client_id'] );
+	}
+	if ( isset( $input['oidc_client_secret'] ) ) {
+		$secret = preg_replace( '/[\r\n\0]/', '', (string) $input['oidc_client_secret'] );
+		$secret = is_string( $secret ) ? trim( $secret ) : '';
+		if ( $secret !== '' ) {
+			$out['oidc_client_secret'] = $secret;
+		}
+	}
+	if ( isset( $input['oidc_button_label'] ) ) {
+		$label = sanitize_text_field( (string) $input['oidc_button_label'] );
+		$out['oidc_button_label'] = function_exists( 'mb_substr' ) ? mb_substr( $label, 0, 60 ) : substr( $label, 0, 60 );
+	}
+
 	if ( isset( $input['password_allowed_roles'] ) && is_array( $input['password_allowed_roles'] ) ) {
 		$roles = array();
 		foreach ( $input['password_allowed_roles'] as $role ) {
@@ -362,6 +388,9 @@ function logliy_login_tagline(): string {
 	$custom = trim( (string) logliy_get_setting( 'login_tagline', '' ) );
 	if ( $custom !== '' ) {
 		return $custom;
+	}
+	if ( function_exists( 'logliy_oidc_is_ready' ) && logliy_oidc_is_ready() ) {
+		return __( 'Sign in with a Passkey, Email code, or SSO.', 'logliy' );
 	}
 	return __( 'Sign in with a Passkey or Email code.', 'logliy' );
 }
@@ -475,4 +504,32 @@ function logliy_resolve_login_user( string $login ): ?WP_User {
  */
 function logliy_auto_remember(): bool {
 	return (bool) logliy_get_setting( 'auto_remember', true );
+}
+
+/**
+ * Sanitize an OpenID Provider issuer URL (https, or http on localhost).
+ */
+function logliy_sanitize_oidc_issuer( string $raw ): string {
+	$raw = trim( $raw );
+	if ( $raw === '' ) {
+		return '';
+	}
+	$url = esc_url_raw( $raw );
+	if ( $url === '' ) {
+		return '';
+	}
+	$url   = untrailingslashit( $url );
+	$parts = wp_parse_url( $url );
+	if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+		return '';
+	}
+	$scheme = strtolower( (string) $parts['scheme'] );
+	$host   = strtolower( (string) $parts['host'] );
+	if ( $scheme === 'https' ) {
+		return $url;
+	}
+	if ( $scheme === 'http' && ( $host === 'localhost' || $host === '127.0.0.1' ) ) {
+		return $url;
+	}
+	return '';
 }
