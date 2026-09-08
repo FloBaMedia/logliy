@@ -3,7 +3,7 @@
  * Plugin Name:       Logliy - Login Protect (Passkey, Email, SSO)
  * Plugin URI:        https://github.com/FloBaMedia/logliy
  * Description:       Passwordless WordPress login with Passkeys, Email OTP, Magic Link, and optional SSO (OpenID Connect).
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            FloBa Media
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOGLIY_VERSION', '0.1.0' );
+define( 'LOGLIY_VERSION', '0.1.1' );
 define( 'LOGLIY_PLUGIN_FILE', __FILE__ );
 define( 'LOGLIY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOGLIY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -151,6 +151,7 @@ function logliy_complete_login( WP_User $user, bool $remember = false ) {
 	 * Multisite spam/deleted checks run before issuing a cookie.
 	 * Suspend Wordfence LS 2FA only for this passwordless completion.
 	 */
+	$GLOBALS['logliy_passwordless_login'] = true;
 	logliy_wordfence_ls_suspend_auth();
 
 	try {
@@ -203,6 +204,7 @@ function logliy_complete_login( WP_User $user, bool $remember = false ) {
 
 		return array( 'redirect' => $redirect );
 	} finally {
+		unset( $GLOBALS['logliy_passwordless_login'] );
 		logliy_wordfence_ls_resume_auth();
 	}
 }

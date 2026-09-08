@@ -53,6 +53,21 @@ function logliy_turnstile_required(): bool {
 }
 
 /**
+ * Skip Simple Cloudflare Turnstile's wp-login authenticate check during
+ * passwordless completion (SSO callback, magic link). Captcha was already
+ * verified on the login form / REST request. The IdP callback has no token.
+ *
+ * @param bool $skip Whether the Turnstile plugin should skip the check.
+ */
+add_filter( 'cfturnstile_wp_login_checks', 'logliy_cfturnstile_skip_passwordless' );
+function logliy_cfturnstile_skip_passwordless( $skip ) {
+	if ( ! empty( $GLOBALS['logliy_passwordless_login'] ) ) {
+		return true;
+	}
+	return $skip;
+}
+
+/**
  * Turnstile site key (best-effort from common sources).
  */
 function logliy_turnstile_site_key(): string {

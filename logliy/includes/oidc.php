@@ -178,9 +178,14 @@ function logliy_oidc_callback(): void {
 		logliy_oidc_fail( 'config' );
 	}
 
+	// OAuth error is query-only. Ignore when an authorization code is present
+	// (success response). Never use $_REQUEST — WordPress login uses `error`,
+	// and cookies can leak into REQUEST on some PHP setups.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	if ( ! empty( $_REQUEST['error'] ) ) {
-		logliy_fire_login_failed( 'oidc', __( 'SSO sign-in was cancelled or denied.', 'logliy' ) );
+	$oauth_code  = isset( $_GET['code'] ) ? (string) wp_unslash( $_GET['code'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$oauth_error = isset( $_GET['error'] ) ? sanitize_key( (string) wp_unslash( $_GET['error'] ) ) : '';
+	if ( $oauth_error !== '' && $oauth_code === '' ) {
 		logliy_oidc_fail( 'denied' );
 	}
 
@@ -201,14 +206,12 @@ function logliy_oidc_callback(): void {
 
 	$tokens = logliy_oidc_exchange_code( $code, (string) $data['verifier'], (string) ( $data['redirect_uri'] ?? logliy_oidc_redirect_uri() ) );
 	if ( is_wp_error( $tokens ) ) {
-		logliy_fire_login_failed( 'oidc', $tokens->get_error_message() );
 		logliy_oidc_fail( 'token' );
 	}
 
 	$id_token = (string) ( $tokens['id_token'] ?? '' );
 	$claims   = logliy_oidc_verify_id_token( $id_token, (string) $data['nonce'] );
 	if ( is_wp_error( $claims ) ) {
-		logliy_fire_login_failed( 'oidc', $claims->get_error_message() );
 		logliy_oidc_fail( 'claims' );
 	}
 
@@ -217,11 +220,9 @@ function logliy_oidc_callback(): void {
 		$email = logliy_oidc_email_from_userinfo( (string) $tokens['access_token'], (string) $claims['sub'] );
 	}
 	if ( $email === '' ) {
-		logliy_fire_login_failed( 'oidc', __( 'SSO token did not include a verified email.', 'logliy' ) );
 		logliy_oidc_fail( 'claims' );
 	}
 	if ( isset( $claims['email_verified'] ) && $claims['email_verified'] !== true && $claims['email_verified'] !== 'true' && $claims['email_verified'] !== 1 ) {
-		logliy_fire_login_failed( 'oidc', __( 'SSO email is not verified.', 'logliy' ) );
 		logliy_oidc_fail( 'claims' );
 	}
 
@@ -240,7 +241,7 @@ function logliy_oidc_callback(): void {
 	$remember = ! empty( $data['remember'] );
 	$result   = logliy_complete_login( $user, $remember );
 	if ( is_wp_error( $result ) ) {
-		logliy_oidc_fail( 'denied' );
+		logliy_oidc_fail( 'auth' );
 	}
 
 	wp_safe_redirect( $result['redirect'] );
@@ -266,6 +267,8 @@ function logliy_oidc_error_message( string $code ): string {
 			return __( 'Please complete the CAPTCHA challenge and try again.', 'logliy' );
 		case 'denied':
 			return __( 'SSO sign-in was cancelled or denied.', 'logliy' );
+		case 'auth':
+			return __( 'SSO sign-in could not be completed. If this keeps happening, wait a few minutes in case a security plugin locked the IP.', 'logliy' );
 		case 'nouser':
 			return __( 'No matching WordPress account was found for this SSO identity.', 'logliy' );
 		default:

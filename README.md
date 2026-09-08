@@ -52,11 +52,11 @@ node build.mjs
 
 Outputs (gitignored under `dist/` and repo root):
 
-- `dist/logliy-0.1.0.zip` — versioned release (version from `logliy.php`)
+- `dist/logliy-0.1.1.zip` — versioned release (version from `logliy.php`)
 - `dist/logliy-wordpress.zip` — stable alias (always latest build)
 - `dist/logliy-wordpress.version` — sidecar with the version string
 
-In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.1.0.zip`.
+In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.1.1.zip`.
 
 ## Develop
 

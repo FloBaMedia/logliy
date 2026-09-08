@@ -2,6 +2,11 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.1.1] — 2026-09-08
+
+### Fixed
+- SSO no longer fails with “denied” when Cloudflare Turnstile is enabled on the login form (the identity-provider callback has no Captcha token)
+
 ## [0.1.0] — 2026-09-07
 
 ### Added

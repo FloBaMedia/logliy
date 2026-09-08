@@ -4,7 +4,7 @@ Tags: login, passkey, passwordless, sso, otp
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -108,6 +108,9 @@ Application Passwords and WP-CLI are not blocked by the password policy.
 With password login off, XML-RPC authentication with the **account password** is blocked by default (affects the WordPress mobile app, Jetpack, and some backup tools). Enable **Allow XML-RPC passwords** under Logliy → General if a tool still requires it. Prefer Application Passwords when the client supports them.
 
 == Changelog ==
+
+= 0.1.1 =
+* Fix: SSO no longer fails with “denied” when Cloudflare Turnstile is enabled on the login form
 
 = 0.1.0 =
 * Optional SSO login via OpenID Connect (authorization code + PKCE). Shown on the login form only when fully configured.
