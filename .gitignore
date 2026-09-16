@@ -12,3 +12,9 @@
 /logliy-*.zip
 /logliy-wordpress.zip
 /logliy-wordpress.version
+# AgentSync local state
+.ai/backups/
+.ai/tmp/
+!.cursor/
+!.cursor/mcp.json
+!.mcp.json

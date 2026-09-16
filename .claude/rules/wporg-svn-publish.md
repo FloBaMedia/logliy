@@ -1,7 +1,6 @@
 ---
 description: wordpress.org SVN publish for Logliy (shared with CookiePeak)
 alwaysApply: true
-globs: '**/*'
 ---
 
 # wordpress.org Plugin-Release
