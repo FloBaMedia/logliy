@@ -65,6 +65,27 @@ function logliy_db_install(): void {
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta( $sql );
 	dbDelta( $sql_rl );
+	dbDelta( "CREATE TABLE {$wpdb->prefix}logliy_email_challenges (
+		user_id bigint(20) unsigned NOT NULL,
+		method varchar(10) NOT NULL,
+		token_hash char(64) NOT NULL,
+		email_hash char(64) NOT NULL,
+		expires bigint(20) unsigned NOT NULL,
+		attempts int(10) unsigned NOT NULL DEFAULT 0,
+		PRIMARY KEY  (user_id,method),
+		KEY token_hash (token_hash),
+		KEY expires (expires)
+	) {$charset_collate};" );
+	dbDelta( "CREATE TABLE {$wpdb->prefix}logliy_security_events (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		event varchar(64) NOT NULL,
+		actor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+		user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+		resource varchar(191) NOT NULL DEFAULT '',
+		created_at datetime NOT NULL,
+		PRIMARY KEY  (id),
+		KEY created_at (created_at)
+	) {$charset_collate};" );
 
 	update_option( 'logliy_db_version', LOGLIY_DB_VERSION, false );
 }
@@ -128,6 +149,7 @@ function logliy_db_insert_credential( array $data ) {
 	if ( $result ) {
 		$insert_id = (int) $wpdb->insert_id;
 		logliy_db_flush_user_credential_cache( (int) $data['user_id'] );
+		logliy_security_event( 'passkey_added', (int) $data['user_id'] );
 		return $insert_id;
 	}
 
@@ -271,6 +293,7 @@ function logliy_db_delete_credential( int $id, int $user_id ): bool {
 	);
 	if ( (int) $result > 0 ) {
 		logliy_db_flush_user_credential_cache( $user_id );
+		logliy_security_event( 'passkey_removed', $user_id );
 		return true;
 	}
 	return false;

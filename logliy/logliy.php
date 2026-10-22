@@ -3,7 +3,7 @@
  * Plugin Name:       Logliy - Login Protect (Passkey, Email, SSO)
  * Plugin URI:        https://github.com/FloBaMedia/logliy
  * Description:       Passwordless WordPress login with Passkeys, Email OTP, Magic Link, and optional SSO (OpenID Connect).
- * Version:           0.1.1
+ * Version:           0.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            FloBa Media
@@ -18,14 +18,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOGLIY_VERSION', '0.1.1' );
+define( 'LOGLIY_VERSION', '0.2.0' );
 define( 'LOGLIY_PLUGIN_FILE', __FILE__ );
 define( 'LOGLIY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOGLIY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LOGLIY_ADMIN_PAGE', 'logliy' );
 define( 'LOGLIY_OPT_SETTINGS', 'logliy_settings' );
 define( 'LOGLIY_OPT_VERSION', 'logliy_plugin_version' );
-define( 'LOGLIY_DB_VERSION', '2' );
+define( 'LOGLIY_DB_VERSION', '3' );
 
 $logliy_prefixed = LOGLIY_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 $logliy_autoload = LOGLIY_PLUGIN_DIR . 'vendor/autoload.php';
@@ -42,6 +42,9 @@ require_once LOGLIY_PLUGIN_DIR . 'includes/db.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/rate-limit.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/password-policy.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/captcha.php';
+require_once LOGLIY_PLUGIN_DIR . 'includes/email-policy.php';
+require_once LOGLIY_PLUGIN_DIR . 'includes/email-challenges.php';
+require_once LOGLIY_PLUGIN_DIR . 'includes/security.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/email-otp.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/magic-link.php';
 require_once LOGLIY_PLUGIN_DIR . 'includes/oidc.php';
@@ -65,8 +68,8 @@ if ( is_admin() ) {
  */
 register_activation_hook( __FILE__, 'logliy_activate' );
 function logliy_activate(): void {
-	logliy_settings_ensure_defaults();
 	logliy_db_install();
+	logliy_settings_ensure_defaults();
 	update_option( LOGLIY_OPT_VERSION, LOGLIY_VERSION, false );
 	update_option( 'logliy_flush_rewrite', 1, false );
 	set_transient( 'logliy_activation_redirect', 1, 60 );
@@ -78,7 +81,7 @@ function logliy_activate(): void {
  */
 register_deactivation_hook( __FILE__, 'logliy_deactivate' );
 function logliy_deactivate(): void {
-	// No destructive cleanup on deactivate.
+	wp_clear_scheduled_hook( 'logliy_security_cleanup' );
 }
 
 /**

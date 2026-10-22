@@ -2,6 +2,34 @@
 
 All notable changes to Logliy – Login Protect are documented in this file.
 
+## [0.2.0] — 2026-10-22
+
+### Added
+- Always-on Auto-save with a top-right manual Save settings action, debouncing, sequential requests, validation/error feedback and pending-change navigation warning.
+- Tab-scoped authenticated AJAX save using Settings API nonce and existing validation; stale hidden settings from other tabs are ignored and secrets are excluded from responses.
+- Content hashes in admin CSS/JS versions prevent stale assets during repeated installs of the same plugin version; keep the banner beside settings at narrower desktop widths.
+- Wider responsive settings layout with locally branded ServerMetry and CookiePeak promotions in a 340px sidebar, stacked below settings on smaller screens.
+- Neutral example.com addresses in email access rule help.
+- Separate plugin notification switches for installations, updates, activations, deactivations and deletions; preserve legacy all-plugin preferences.
+- Shared email rules and request limits grouped under General email settings; native WordPress Users columns replace the duplicate users tab.
+- Optional exact-domain/address/local-part wildcard policies for Email Code and Magic Link, enforced before sending and on redemption.
+- Site-wide email budget shared with account/IP limits across both email methods.
+- SSO email allowlist, signed group/role claim restrictions and verified-email setting before account linking or provisioning.
+- Bounded security log with 1–365 day retention (default 30 days; maximum 10000 events), without raw addresses, IPs or authentication secrets.
+- Opt-in notifications for account security, plugin installs/updates/activation/deactivation/deletion, user creation/deletion/role changes and Logliy settings.
+- Profile session list with individual and all-session revocation, nonce and object capability checks.
+
+### Fixed
+- Codes and links are consumed atomically from durable database state; concurrent requests cannot redeem the same challenge twice.
+- OTP attempts are counted atomically without extending expiration. New links replace earlier links; changes to the account email invalidate issued challenges.
+- Email request cooldowns and limits no longer depend on evictable object-cache state.
+- Uninstall cleanup SQL trailing comma and cleanup of new plugin tables/scheduled tasks.
+
+### Upgrade notes
+- Outstanding pre-0.2.0 email codes/links are invalidated. Request new ones.
+- SSO requires boolean `email_verified: true` by default. Review the option for trusted providers without this claim before upgrading.
+- Access restrictions and notification categories are opt-in. Log storage is enabled by default; notifications remain independent of logging.
+
 ## [0.1.1] — 2026-09-08
 
 ### Fixed

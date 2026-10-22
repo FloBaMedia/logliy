@@ -139,7 +139,7 @@ function logliy_turnstile_siteverify( string $token ) {
 	}
 
 	$response = wp_remote_post(
-		'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+		'https://challenges.cloudflare.com/turnstile/v0/siteverify', // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Documented CAPTCHA verification API; no remote scripts or assets are fetched here.
 		array(
 			'timeout' => 10,
 			'body'    => array(

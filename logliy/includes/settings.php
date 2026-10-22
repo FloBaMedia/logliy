@@ -23,6 +23,26 @@ function logliy_default_settings(): array {
 		'oidc_client_secret'           => '',
 		'oidc_button_label'            => '',
 		'oidc_create_users'            => false,
+		'email_allowlist_enabled'      => false,
+		'email_allowed_addresses'      => '',
+		'email_rate_limit_site'        => 100,
+		'oidc_require_verified_email'  => true,
+		'oidc_allowlist_enabled'       => false,
+		'oidc_allowed_addresses'       => '',
+		'oidc_groups_enabled'          => false,
+		'oidc_groups_claim'            => 'groups',
+		'oidc_allowed_groups'          => '',
+		'security_log_enabled'         => true,
+		'security_log_retention_days'  => 30,
+		'notify_account_security'      => false,
+		'notify_plugin_installed' => false,
+		'notify_plugin_updated' => false,
+		'notify_plugin_activated' => false,
+		'notify_plugin_deactivated' => false,
+		'notify_plugin_deleted' => false,
+		'notify_user_changes'          => false,
+		'notify_settings_changes'      => false,
+		'notification_email'           => '',
 		'allow_password_login'         => false,
 		'allow_xmlrpc_password'        => false,
 		'password_allowed_roles'       => array(),
@@ -81,7 +101,7 @@ function logliy_settings_ensure_defaults(): void {
 		add_option( LOGLIY_OPT_SETTINGS, logliy_default_settings(), '', false );
 		return;
 	}
-	$merged = array_merge( logliy_default_settings(), $existing );
+	$merged = array_merge( logliy_default_settings(), logliy_migrate_plugin_notifications( $existing ) );
 	update_option( LOGLIY_OPT_SETTINGS, $merged, false );
 }
 
@@ -95,7 +115,7 @@ function logliy_get_settings(): array {
 	if ( ! is_array( $stored ) ) {
 		$stored = array();
 	}
-	return array_merge( logliy_default_settings(), $stored );
+	return array_merge( logliy_default_settings(), logliy_migrate_plugin_notifications( $stored ) );
 }
 
 /**
@@ -117,7 +137,7 @@ function logliy_get_setting( string $key, $default = null ) {
  * @return array<string, mixed>
  */
 function logliy_update_settings( array $patch ): array {
-	$settings = array_merge( logliy_get_settings(), $patch );
+	$settings = array_merge( logliy_get_settings(), logliy_migrate_plugin_notifications( $patch ) );
 	update_option( LOGLIY_OPT_SETTINGS, $settings, false );
 	return $settings;
 }
@@ -131,9 +151,10 @@ function logliy_update_settings( array $patch ): array {
  * @return array<string, mixed>
  */
 function logliy_sanitize_settings( array $input, ?array $base = null ): array {
+	$input = logliy_migrate_plugin_notifications( $input );
 	$defaults = logliy_default_settings();
 	if ( is_array( $base ) ) {
-		$out = array_merge( $defaults, $base );
+		$out = array_merge( $defaults, logliy_migrate_plugin_notifications( $base ) );
 	} else {
 		$out = logliy_get_settings();
 	}
@@ -144,6 +165,19 @@ function logliy_sanitize_settings( array $input, ?array $base = null ): array {
 		'enable_magic_link',
 		'enable_oidc',
 		'oidc_create_users',
+		'email_allowlist_enabled',
+		'oidc_require_verified_email',
+		'oidc_allowlist_enabled',
+		'oidc_groups_enabled',
+		'security_log_enabled',
+		'notify_account_security',
+		'notify_plugin_installed',
+		'notify_plugin_updated',
+		'notify_plugin_activated',
+		'notify_plugin_deactivated',
+		'notify_plugin_deleted',
+		'notify_user_changes',
+		'notify_settings_changes',
 		'allow_password_login',
 		'allow_xmlrpc_password',
 		'wc_enable_myaccount',
@@ -171,6 +205,50 @@ function logliy_sanitize_settings( array $input, ?array $base = null ): array {
 			if ( ! array_key_exists( $key, $input ) ) {
 				$out[ $key ] = false;
 			}
+		}
+	}
+
+	foreach ( array( 'email_allowed_addresses', 'oidc_allowed_addresses' ) as $key ) {
+		if ( ! array_key_exists( $key, $input ) ) {
+			continue;
+		}
+		$raw = is_string( $input[ $key ] ) ? $input[ $key ] : '!invalid!';
+		$lines = preg_split( '/\r\n|\r|\n/', strtolower( trim( $raw ) ) );
+		$valid = strlen( $raw ) <= 10000 && count( $lines ) <= 100;
+		foreach ( $lines as $line ) {
+			if ( trim( $line ) !== '' && ! logliy_email_rule_valid( trim( $line ) ) ) {
+				$valid = false;
+			}
+		}
+		if ( $valid ) {
+			$out[ $key ] = implode( "\n", array_values( array_unique( array_filter( array_map( 'trim', $lines ), 'strlen' ) ) ) );
+		} else {
+			// Preserve the complete policy: dropping a typo can broaden access.
+			add_settings_error( LOGLIY_OPT_SETTINGS, $key, __( 'Invalid email rule. Use one address, @domain or local-part wildcard per line (maximum 100 rules). The previous list was kept.', 'logliy' ) );
+		}
+	}
+	foreach ( array( 'email_rate_limit_site' => array( 1, 10000 ), 'security_log_retention_days' => array( 1, 365 ) ) as $key => $range ) {
+		if ( isset( $input[ $key ] ) ) {
+			$out[ $key ] = max( $range[0], min( $range[1], (int) $input[ $key ] ) );
+		}
+	}
+	if ( isset( $input['oidc_groups_claim'] ) ) {
+		$claim = is_string( $input['oidc_groups_claim'] ) ? trim( $input['oidc_groups_claim'] ) : '';
+		if ( preg_match( '/\A[a-zA-Z0-9_.:\/-]{1,191}\z/', $claim ) ) {
+			$out['oidc_groups_claim'] = $claim;
+		} else {
+			add_settings_error( LOGLIY_OPT_SETTINGS, 'oidc_groups_claim', __( 'Invalid SSO claim name. The previous name was kept.', 'logliy' ) );
+		}
+	}
+	if ( isset( $input['oidc_allowed_groups'] ) ) {
+		$out['oidc_allowed_groups'] = substr( sanitize_textarea_field( (string) $input['oidc_allowed_groups'] ), 0, 10000 );
+	}
+	if ( isset( $input['notification_email'] ) ) {
+		$email = trim( (string) $input['notification_email'] );
+		if ( $email === '' || is_email( $email ) ) {
+			$out['notification_email'] = $email;
+		} else {
+			add_settings_error( LOGLIY_OPT_SETTINGS, 'notification_email', __( 'Invalid notification email. The previous recipient was kept.', 'logliy' ) );
 		}
 	}
 
@@ -532,4 +610,18 @@ function logliy_sanitize_oidc_issuer( string $raw ): string {
 		return $url;
 	}
 	return '';
+}
+
+/** Preserve the old all-plugin choice, while explicit per-event values win. */
+function logliy_migrate_plugin_notifications( array $settings ): array {
+	if ( array_key_exists( 'notify_plugin_changes', $settings ) ) {
+		foreach ( array( 'installed', 'updated', 'activated', 'deactivated', 'deleted' ) as $event ) {
+			$key = 'notify_plugin_' . $event;
+			if ( ! array_key_exists( $key, $settings ) ) {
+				$settings[ $key ] = $settings['notify_plugin_changes'];
+			}
+		}
+		unset( $settings['notify_plugin_changes'] );
+	}
+	return $settings;
 }

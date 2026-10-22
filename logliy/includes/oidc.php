@@ -182,7 +182,7 @@ function logliy_oidc_callback(): void {
 	// (success response). Never use $_REQUEST — WordPress login uses `error`,
 	// and cookies can leak into REQUEST on some PHP setups.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	$oauth_code  = isset( $_GET['code'] ) ? (string) wp_unslash( $_GET['code'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+	$oauth_code  = isset( $_GET['code'] ) ? (string) wp_unslash( $_GET['code'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Recommended -- OAuth state is verified below.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$oauth_error = isset( $_GET['error'] ) ? sanitize_key( (string) wp_unslash( $_GET['error'] ) ) : '';
 	if ( $oauth_error !== '' && $oauth_code === '' ) {
@@ -217,13 +217,22 @@ function logliy_oidc_callback(): void {
 
 	$email = logliy_oidc_email_from_claims( $claims );
 	if ( $email === '' && ! empty( $tokens['access_token'] ) ) {
-		$email = logliy_oidc_email_from_userinfo( (string) $tokens['access_token'], (string) $claims['sub'] );
+		$info = logliy_oidc_userinfo( (string) $tokens['access_token'], (string) $claims['sub'] );
+		if ( is_array( $info ) ) {
+			$email = logliy_oidc_email_from_claims( $info );
+			// Keep authorization groups from the signed ID token only.
+			$claims['email_verified'] = $info['email_verified'] ?? false;
+		}
 	}
 	if ( $email === '' ) {
 		logliy_oidc_fail( 'claims' );
 	}
 	if ( isset( $claims['email_verified'] ) && $claims['email_verified'] !== true && $claims['email_verified'] !== 'true' && $claims['email_verified'] !== 1 ) {
 		logliy_oidc_fail( 'claims' );
+	}
+
+	if ( ! logliy_oidc_access_allowed( $claims, $email ) ) {
+		logliy_oidc_fail( 'access' );
 	}
 
 	$user = logliy_oidc_resolve_user( $claims, $email );
@@ -252,6 +261,7 @@ function logliy_oidc_callback(): void {
  * Redirect back to login with a generic error code.
  */
 function logliy_oidc_fail( string $code ): void {
+	logliy_security_event( 'sso_denied' );
 	wp_safe_redirect( add_query_arg( 'logliy_oidc_error', sanitize_key( $code ), wp_login_url() ) );
 	exit;
 }
@@ -269,6 +279,8 @@ function logliy_oidc_error_message( string $code ): string {
 			return __( 'SSO sign-in was cancelled or denied.', 'logliy' );
 		case 'auth':
 			return __( 'SSO sign-in could not be completed. If this keeps happening, wait a few minutes in case a security plugin locked the IP.', 'logliy' );
+		case 'access':
+			return __( 'This SSO identity is not allowed to sign in.', 'logliy' );
 		case 'nouser':
 			return __( 'No matching WordPress account was found for this SSO identity.', 'logliy' );
 		default:
@@ -561,21 +573,21 @@ function logliy_oidc_jwks() {
  * @param array<string, mixed> $claims Claims.
  */
 function logliy_oidc_email_from_claims( array $claims ): string {
-	$email = isset( $claims['email'] ) ? sanitize_email( (string) $claims['email'] ) : '';
+	$email = isset( $claims['email'] ) && is_string( $claims['email'] ) ? $claims['email'] : '';
 	return is_email( $email ) ? $email : '';
 }
 
 /**
  * Fallback: UserInfo endpoint when the ID token has no email.
  */
-function logliy_oidc_email_from_userinfo( string $access_token, string $sub ): string {
+function logliy_oidc_userinfo( string $access_token, string $sub ): ?array {
 	$discovery = logliy_oidc_discovery();
 	if ( is_wp_error( $discovery ) ) {
-		return '';
+		return null;
 	}
 	$userinfo = (string) ( $discovery['userinfo_endpoint'] ?? '' );
 	if ( $userinfo === '' || ! logliy_oidc_url_allowed( $userinfo ) ) {
-		return '';
+		return null;
 	}
 
 	$response = wp_remote_get(
@@ -590,17 +602,16 @@ function logliy_oidc_email_from_userinfo( string $access_token, string $sub ): s
 		)
 	);
 	if ( is_wp_error( $response ) || (int) wp_remote_retrieve_response_code( $response ) !== 200 ) {
-		return '';
+		return null;
 	}
 	$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 	if ( ! is_array( $body ) ) {
-		return '';
+		return null;
 	}
 	if ( empty( $body['sub'] ) || ! hash_equals( $sub, (string) $body['sub'] ) ) {
-		return '';
+		return null;
 	}
-	$email = isset( $body['email'] ) ? sanitize_email( (string) $body['email'] ) : '';
-	return is_email( $email ) ? $email : '';
+	return $body;
 }
 
 /**
@@ -610,6 +621,9 @@ function logliy_oidc_email_from_userinfo( string $access_token, string $sub ): s
  * @return WP_User|WP_Error
  */
 function logliy_oidc_resolve_user( array $claims, string $email ) {
+	if ( ! logliy_oidc_access_allowed( $claims, $email ) ) {
+		return new WP_Error( 'logliy_oidc_access', 'SSO access denied.' );
+	}
 	$sub = (string) $claims['sub'];
 	$iss = untrailingslashit( (string) $claims['iss'] );
 
@@ -641,11 +655,12 @@ function logliy_oidc_resolve_user( array $claims, string $email ) {
 	if ( $by_email instanceof WP_User ) {
 		$existing_sub = (string) get_user_meta( $by_email->ID, 'logliy_oidc_sub', true );
 		$existing_iss = untrailingslashit( (string) get_user_meta( $by_email->ID, 'logliy_oidc_iss', true ) );
-		if ( $existing_sub !== '' && $existing_iss === $iss && ! hash_equals( $existing_sub, $sub ) ) {
+		if ( $existing_sub !== '' && ( $existing_iss !== $iss || ! hash_equals( $existing_sub, $sub ) ) ) {
 			return new WP_Error( 'logliy_oidc_email_taken', 'Email already linked to another SSO identity.' );
 		}
 		update_user_meta( $by_email->ID, 'logliy_oidc_sub', $sub );
 		update_user_meta( $by_email->ID, 'logliy_oidc_iss', $iss );
+		logliy_security_event( 'sso_linked', (int) $by_email->ID );
 		return $by_email;
 	}
 
@@ -700,6 +715,7 @@ function logliy_oidc_resolve_user( array $claims, string $email ) {
 
 	update_user_meta( (int) $user_id, 'logliy_oidc_sub', $sub );
 	update_user_meta( (int) $user_id, 'logliy_oidc_iss', $iss );
+	logliy_security_event( 'sso_linked', (int) $user_id );
 
 	$user = get_user_by( 'id', (int) $user_id );
 	return $user instanceof WP_User ? $user : new WP_Error( 'logliy_oidc_create', 'Could not create user.' );
@@ -809,4 +825,37 @@ function logliy_oidc_rsa_pem( string $n, string $e ): string {
 	$spki   = $alg . $bitstr;
 	$der    = "\x30" . logliy_oidc_der_length( strlen( $spki ) ) . $spki;
 	return "-----BEGIN PUBLIC KEY-----\n" . chunk_split( base64_encode( $der ), 64, "\n" ) . "-----END PUBLIC KEY-----\n";
+}
+
+/** Apply access policy before any account is linked or provisioned. */
+function logliy_oidc_access_allowed( array $claims, string $email ): bool {
+	if ( logliy_get_setting( 'oidc_require_verified_email', true ) && ( $claims['email_verified'] ?? false ) !== true ) {
+		return false;
+	}
+	if ( logliy_get_setting( 'oidc_allowlist_enabled', false ) && ! logliy_email_matches_rules( $email, (string) logliy_get_setting( 'oidc_allowed_addresses', '' ) ) ) {
+		return false;
+	}
+	if ( ! logliy_get_setting( 'oidc_groups_enabled', false ) ) {
+		return true;
+	}
+	$path = (string) logliy_get_setting( 'oidc_groups_claim', 'groups' );
+	// A literal key wins; dot notation also supports realm_access.roles.
+	$groups = $claims[ $path ] ?? null;
+	if ( $groups === null ) {
+		$groups = $claims;
+		foreach ( explode( '.', $path ) as $segment ) {
+			$groups = is_array( $groups ) ? ( $groups[ $segment ] ?? null ) : null;
+		}
+	}
+	$groups = is_string( $groups ) ? array( $groups ) : $groups;
+	if ( ! is_array( $groups ) ) {
+		return false;
+	}
+	$allowed = array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', (string) logliy_get_setting( 'oidc_allowed_groups', '' ) ) ), 'strlen' );
+	foreach ( $groups as $group ) {
+		if ( is_string( $group ) && in_array( $group, $allowed, true ) ) {
+			return true;
+		}
+	}
+	return false;
 }

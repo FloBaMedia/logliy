@@ -10,6 +10,8 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 $logliy_settings = get_option( 'logliy_settings', array() );
 $logliy_wipe     = is_array( $logliy_settings ) && ! empty( $logliy_settings['delete_settings_on_uninstall'] );
 
+wp_clear_scheduled_hook( 'logliy_security_cleanup' );
+
 // Keep all data unless the admin opted in to wipe on uninstall.
 if ( ! $logliy_wipe ) {
 	return;
@@ -45,10 +47,15 @@ $wpdb->query(
 		'logliy_last_login',
 		'logliy_last_activity',
 		'logliy_oidc_sub',
-		'logliy_oidc_iss',
+		'logliy_oidc_iss'
 	)"
 );
 
 // Best-effort transient cleanup.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_logliy_%' OR option_name LIKE '_transient_timeout_logliy_%'" );
+
+foreach ( array( 'logliy_email_challenges', 'logliy_security_events' ) as $logliy_suffix ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Drop only fixed plugin tables.
+	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . $logliy_suffix ) );
+}

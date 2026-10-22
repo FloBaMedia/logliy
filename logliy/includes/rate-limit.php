@@ -2,8 +2,7 @@
 /**
  * IP / account rate limiting.
  *
- * Object cache: atomic wp_cache_incr.
- * Otherwise: one atomic INSERT … ON DUPLICATE KEY UPDATE against logliy_rl.
+ * One atomic INSERT … ON DUPLICATE KEY UPDATE against logliy_rl.
  *
  * @package Logliy
  */
@@ -19,27 +18,12 @@ defined( 'ABSPATH' ) || exit;
  * @return true|WP_Error True if allowed.
  */
 function logliy_rate_limit_hit( string $bucket, int $limit, int $window ) {
-	$key     = 'logliy_rl_' . md5( $bucket );
-	$ttl     = max( $window, 60 );
+	$ttl     = max( $window, 1 );
 	$limited = new WP_Error(
 		'logliy_rate_limited',
 		__( 'Too many attempts. Please wait and try again.', 'logliy' ),
 		array( 'status' => 429 )
 	);
-
-	if ( wp_using_ext_object_cache() ) {
-		$group = 'logliy_rl';
-		wp_cache_add( $key, 0, $group, $ttl );
-		$count = wp_cache_incr( $key, 1, $group );
-		if ( false === $count ) {
-			wp_cache_set( $key, 1, $group, $ttl );
-			$count = 1;
-		}
-		if ( $count > $limit ) {
-			return $limited;
-		}
-		return true;
-	}
 
 	global $wpdb;
 	$table = logliy_rate_limit_table();
@@ -55,10 +39,10 @@ function logliy_rate_limit_hit( string $bucket, int $limit, int $window ) {
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	$ok = $wpdb->query(
 		$wpdb->prepare(
-			"INSERT INTO {$table} (bucket_hash, cnt, expires) VALUES (%s, 1, %d)
+			"INSERT INTO {$table} (bucket_hash, cnt, expires) VALUES (%s, LAST_INSERT_ID(1), %d)
 			ON DUPLICATE KEY UPDATE
-				cnt = IF(expires < %d, 1, cnt + 1),
-				expires = IF(expires < %d, %d, expires)",
+				cnt = LAST_INSERT_ID(IF(expires <= %d, 1, LEAST(cnt + 1, 4294967295))),
+				expires = IF(expires <= %d, %d, expires)",
 			$hash,
 			$exp,
 			$now,
@@ -69,17 +53,12 @@ function logliy_rate_limit_hit( string $bucket, int $limit, int $window ) {
 
 	$count = 0;
 	if ( false !== $ok ) {
-		$count = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT cnt FROM {$table} WHERE bucket_hash = %s",
-				$hash
-			)
-		);
+		$count = (int) $wpdb->get_var( 'SELECT LAST_INSERT_ID()' );
 
 		if ( 1 === wp_rand( 1, 200 ) ) {
 			$wpdb->query(
 				$wpdb->prepare(
-					"DELETE FROM {$table} WHERE expires < %d",
+					"DELETE FROM {$table} WHERE expires <= %d",
 					$now
 				)
 			);
@@ -88,7 +67,7 @@ function logliy_rate_limit_hit( string $bucket, int $limit, int $window ) {
 	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 	// Table missing / DB error — fail closed for auth endpoints.
-	if ( false === $ok || $count > $limit ) {
+	if ( false === $ok || $count < 1 || $count > $limit ) {
 		return $limited;
 	}
 
@@ -104,7 +83,6 @@ function logliy_rate_limit_clear( string $bucket ): void {
 	if ( wp_using_ext_object_cache() ) {
 		wp_cache_delete( $key, 'logliy_rl' );
 	}
-
 	global $wpdb;
 	$table = logliy_rate_limit_table();
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fixed plugin table via $wpdb->delete().
@@ -126,41 +104,29 @@ function logliy_email_request_cooldown( string $bucket ) {
 		return true;
 	}
 
-	$key   = 'logliy_cd_' . md5( $bucket );
-	$until = get_transient( $key );
-	$now   = time();
-
-	if ( is_numeric( $until ) && (int) $until > $now ) {
-		$wait = (int) $until - $now;
-		return new WP_Error(
-			'logliy_cooldown',
-			sprintf(
-				/* translators: %d: seconds remaining */
-				__( 'Please wait %d seconds before requesting another login email.', 'logliy' ),
-				max( 1, $wait )
-			),
-			array(
-				'status'      => 429,
-				'retry_after' => max( 1, $wait ),
-			)
-		);
+	$hit = logliy_rate_limit_hit( 'cooldown_' . $bucket, 1, $seconds );
+	if ( is_wp_error( $hit ) ) {
+		return new WP_Error( 'logliy_cooldown', __( 'Please wait before requesting another login email.', 'logliy' ), array( 'status' => 429, 'retry_after' => $seconds ) );
 	}
-
-	set_transient( $key, $now + $seconds, $seconds );
 	return true;
 }
 
-/**
- * Mark cooldown after a successful email send (OTP / magic).
- * Prefer calling this only after a real send so failed attempts don't lock users out unnecessarily.
- * For spam protection on IP, call logliy_email_request_cooldown() before work instead.
- *
- * @param string $bucket Bucket key.
- */
-function logliy_email_request_cooldown_touch( string $bucket ): void {
-	$seconds = (int) logliy_get_setting( 'email_request_cooldown_seconds', 60 );
-	if ( $seconds <= 0 ) {
-		return;
+/** Shared account and site email budget for both email login methods. */
+function logliy_email_account_limit( WP_User $user ) {
+	$window = (int) logliy_get_setting( 'otp_rate_window_minutes', 15 ) * MINUTE_IN_SECONDS;
+	$cooldown = logliy_email_request_cooldown( 'email_user_' . $user->ID );
+	if ( is_wp_error( $cooldown ) ) {
+		return $cooldown;
 	}
-	set_transient( 'logliy_cd_' . md5( $bucket ), time() + $seconds, $seconds );
+	$account = logliy_rate_limit_hit( 'email_user_' . $user->ID, (int) logliy_get_setting( 'otp_rate_limit_account', 5 ), $window );
+	if ( is_wp_error( $account ) ) {
+		logliy_security_event( 'email_rate_limited', (int) $user->ID );
+		return $account;
+	}
+	$site = logliy_rate_limit_hit( 'email_site', (int) logliy_get_setting( 'email_rate_limit_site', 100 ), $window );
+	if ( is_wp_error( $site ) ) {
+		logliy_security_event( 'email_rate_limited' );
+		return $site;
+	}
+	return true;
 }

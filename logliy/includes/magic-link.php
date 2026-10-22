@@ -18,7 +18,6 @@ function logliy_magic_link_request( string $login ) {
 	}
 
 	$window  = (int) logliy_get_setting( 'otp_rate_window_minutes', 15 ) * MINUTE_IN_SECONDS;
-	$acc_lim = (int) logliy_get_setting( 'otp_rate_limit_account', 5 );
 	$ip_lim  = (int) logliy_get_setting( 'otp_rate_limit_ip', 20 );
 	$ip      = logliy_client_ip();
 
@@ -31,14 +30,14 @@ function logliy_magic_link_request( string $login ) {
 		return $cd_ip;
 	}
 
-	$ip_check = logliy_rate_limit_hit( 'magic_ip_' . $ip, $ip_lim, $window );
+	$ip_check = logliy_rate_limit_hit( 'email_ip_' . $ip, $ip_lim, $window );
 	if ( is_wp_error( $ip_check ) ) {
 		return $ip_check;
 	}
 
 	$public = array(
 		'ok'       => true,
-		'message'  => __( 'If an account exists, a magic login link has been sent.', 'logliy' ),
+		'message'  => __( 'If this address is eligible for login, a magic login link has been sent.', 'logliy' ),
 		'cooldown' => (int) logliy_get_setting( 'email_request_cooldown_seconds', 60 ),
 	);
 
@@ -47,13 +46,11 @@ function logliy_magic_link_request( string $login ) {
 		return $public;
 	}
 
-	$cd_user = logliy_email_request_cooldown( 'email_user_' . $user->ID );
-	if ( is_wp_error( $cd_user ) ) {
+	if ( ! logliy_email_login_allowed( $user ) ) {
+		logliy_security_event( 'email_denied', (int) $user->ID );
 		return $public;
 	}
-
-	$acc_check = logliy_rate_limit_hit( 'magic_user_' . $user->ID, $acc_lim, $window );
-	if ( is_wp_error( $acc_check ) ) {
+	if ( is_wp_error( logliy_email_account_limit( $user ) ) ) {
 		return $public;
 	}
 
@@ -61,14 +58,10 @@ function logliy_magic_link_request( string $login ) {
 	$ttl_min = (int) logliy_get_setting( 'magic_link_ttl_minutes', 15 );
 	$ttl     = max( 5, $ttl_min ) * MINUTE_IN_SECONDS;
 
-	set_transient(
-		'logliy_magic_' . hash( 'sha256', $token ),
-		array(
-			'user_id' => (int) $user->ID,
-			'created' => time(),
-		),
-		$ttl
-	);
+	$hash = hash( 'sha256', $token );
+	if ( ! logliy_email_challenge_store( $user, 'magic', $hash, $ttl ) ) {
+		return $public;
+	}
 
 	$redirect = '';
 	if ( isset( $_REQUEST['redirect_to'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -87,10 +80,12 @@ function logliy_magic_link_request( string $login ) {
 
 	$sent = logliy_magic_link_send_email( $user, $url, $ttl_min );
 	if ( is_wp_error( $sent ) ) {
+		logliy_email_challenge_delete( (int) $user->ID, 'magic', $hash );
 		// Same public shape — do not leak that the account exists via mail errors.
 		return $public;
 	}
 
+	logliy_security_event( 'email_link_sent', (int) $user->ID );
 	return $public;
 }
 
@@ -168,18 +163,9 @@ function logliy_magic_link_consume(): void {
 		return;
 	}
 
-	$key  = 'logliy_magic_' . hash( 'sha256', $token );
-	$data = get_transient( $key );
-	delete_transient( $key );
-
-	if ( ! is_array( $data ) || empty( $data['user_id'] ) ) {
-		logliy_fire_login_failed( 'magic-link', __( 'Magic link invalid or expired.', 'logliy' ) );
-		wp_safe_redirect( add_query_arg( 'logliy_magic_error', '1', wp_login_url() ) );
-		exit;
-	}
-
-	$user = get_user_by( 'id', (int) $data['user_id'] );
-	if ( ! $user instanceof WP_User ) {
+	$user = logliy_magic_link_verify( $token );
+	if ( is_wp_error( $user ) ) {
+		logliy_fire_login_failed( 'magic-link', $user );
 		wp_safe_redirect( add_query_arg( 'logliy_magic_error', '1', wp_login_url() ) );
 		exit;
 	}
@@ -192,4 +178,15 @@ function logliy_magic_link_consume(): void {
 	}
 	wp_safe_redirect( $result['redirect'] );
 	exit;
+}
+
+/** Verify current email policy and consume exactly one link before login. */
+function logliy_magic_link_verify( string $token ) {
+	$data = strlen( $token ) === 64 && ctype_xdigit( $token ) ? logliy_email_challenge_get( 'magic', 0, hash( 'sha256', $token ) ) : null;
+	$user = $data ? get_user_by( 'id', (int) $data['user_id'] ) : false;
+	if ( ! logliy_get_setting( 'enable_magic_link', true ) || ! $user instanceof WP_User
+		|| ! logliy_email_login_allowed( $user ) || ! logliy_email_challenge_consume( $user, $data ) ) {
+		return new WP_Error( 'logliy_magic_invalid', __( 'Magic link invalid or expired.', 'logliy' ), array( 'status' => 401 ) );
+	}
+	return $user;
 }

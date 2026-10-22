@@ -66,7 +66,7 @@ function logliy_settings_import_payload( array $payload ) {
 	}
 
 	$defaults = logliy_default_settings();
-	$input    = array_intersect_key( $raw, $defaults );
+	$input    = array_intersect_key( logliy_migrate_plugin_notifications( $raw ), $defaults );
 	unset( $input['oidc_client_secret'] );
 
 	foreach ( logliy_settings_export_site_keys() as $key ) {

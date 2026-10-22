@@ -7,6 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once LOGLIY_PLUGIN_DIR . 'includes/security-admin.php';
+require_once LOGLIY_PLUGIN_DIR . 'includes/admin-save.php';
+
 /**
  * Register settings page.
  */
@@ -54,7 +57,7 @@ function logliy_settings_keep_tab_redirect( string $location ): string {
 	}
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing
 	$tab = sanitize_key( (string) wp_unslash( $_POST['logliy_active_tab'] ) );
-	$allowed = array( 'general', 'redirects', 'passkeys', 'email_otp', 'woocommerce', 'users', 'advanced' );
+	$allowed = array( 'general', 'redirects', 'passkeys', 'email_otp', 'woocommerce', 'advanced', 'sso', 'security', 'security_log' );
 	if ( ! in_array( $tab, $allowed, true ) ) {
 		return $location;
 	}
@@ -62,17 +65,19 @@ function logliy_settings_keep_tab_redirect( string $location ): string {
 }
 
 /**
- * Primary save button markup (top + bottom of settings form).
+ * Manual save action in the settings header, linked to the form.
  *
  * @param string $extra_class Optional extra CSS class(es).
  */
 function logliy_render_save_button( string $extra_class = '' ): void {
 	$class = trim( 'button button-primary lg-save-btn ' . $extra_class );
-	printf(
-		'<p class="lg-save-row"><button type="submit" class="%1$s">%2$s</button></p>',
-		esc_attr( $class ),
-		esc_html__( 'Save settings', 'logliy' )
-	);
+	$top = $extra_class === 'lg-save-btn--top';
+	?>
+	<div class="lg-save-row">
+		<button type="submit" form="logliy-settings-form" class="<?php echo esc_attr( $class ); ?>"><?php echo esc_html__( 'Save settings', 'logliy' ); ?></button>
+		<span class="lg-save-status" data-logliy-save-status <?php if ( $top ) { echo 'role="status" aria-live="polite"'; } ?>></span>
+	</div>
+	<?php
 }
 
 /**
@@ -116,8 +121,19 @@ function logliy_admin_assets( string $hook ): void {
 		return;
 	}
 	wp_enqueue_media();
-	wp_enqueue_style( 'logliy-admin', LOGLIY_PLUGIN_URL . 'assets/css/admin.css', array(), LOGLIY_VERSION );
-	wp_enqueue_script( 'logliy-admin', LOGLIY_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), LOGLIY_VERSION, true );
+	wp_enqueue_style( 'logliy-admin', LOGLIY_PLUGIN_URL . 'assets/css/admin.css', array(), LOGLIY_VERSION . '.' . substr( md5_file( LOGLIY_PLUGIN_DIR . 'assets/css/admin.css' ), 0, 12 ) );
+	wp_enqueue_script( 'logliy-admin', LOGLIY_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), LOGLIY_VERSION . '.' . substr( md5_file( LOGLIY_PLUGIN_DIR . 'assets/js/admin.js' ), 0, 12 ), true );
+	wp_localize_script( 'logliy-admin', 'logliyAdmin', array(
+		'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+		'i18n' => array(
+			'automatic' => __( 'Changes are saved automatically.', 'logliy' ),
+			'saving' => __( 'Saving…', 'logliy' ),
+			'saved' => __( 'Settings saved.', 'logliy' ),
+			'unsaved' => __( 'Unsaved changes.', 'logliy' ),
+			'invalid' => __( 'Check the highlighted fields. Changes have not been saved.', 'logliy' ),
+			'failed' => __( 'Could not save. Your changes are still unsaved. Try Save settings again.', 'logliy' ),
+		),
+	) );
 }
 
 /**
@@ -281,11 +297,12 @@ function logliy_settings_page(): void {
 		'general'     => __( 'General', 'logliy' ),
 		'redirects'   => __( 'Redirects', 'logliy' ),
 		'passkeys'    => __( 'Passkeys', 'logliy' ),
-		'email_otp'   => __( 'Email OTP', 'logliy' ),
+		'email_otp'   => __( 'Email', 'logliy' ),
 		'sso'         => __( 'SSO', 'logliy' ),
 		'woocommerce' => __( 'WooCommerce', 'logliy' ),
-		'users'       => __( 'Users', 'logliy' ),
 		'advanced'    => __( 'Advanced', 'logliy' ),
+		'security'    => __( 'Security', 'logliy' ),
+		'security_log' => __( 'Security log', 'logliy' ),
 	);
 	if ( ! isset( $tabs[ $tab ] ) ) {
 		$tab = 'general';
@@ -301,13 +318,14 @@ function logliy_settings_page(): void {
 			<span class="lg-header-logo" aria-hidden="true">
 				<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z"/><path d="M9 12l2 2 4-4"/></svg>
 			</span>
-			<div>
+			<div class="lg-header-copy">
 				<h1>
 					<?php echo esc_html__( 'Logliy – LoginProtect', 'logliy' ); ?>
 					<span class="lg-version"><?php echo esc_html( 'v' . LOGLIY_VERSION ); ?></span>
 				</h1>
 				<p><?php echo esc_html__( 'Passwordless login with Passkeys, Email codes, and optional SSO.', 'logliy' ); ?></p>
 			</div>
+			<?php if ( $tab !== 'security_log' ) { logliy_render_save_button( 'lg-save-btn--top' ); } ?>
 		</div>
 
 		<nav class="lg-tabs" aria-label="<?php echo esc_attr__( 'Settings tabs', 'logliy' ); ?>">
@@ -316,20 +334,16 @@ function logliy_settings_page(): void {
 			<?php endforeach; ?>
 		</nav>
 
-		<?php if ( $tab === 'users' ) : ?>
-			<?php logliy_render_users_overview(); ?>
-			<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media.', 'logliy' ); ?></p>
-		</div>
-			<?php
-			return;
-		endif;
-		?>
+		<div class="lg-layout">
+		<div class="lg-main">
+		<?php if ( $tab === 'security_log' ) : ?>
+			<?php logliy_render_security_log(); ?>
+		<?php else : ?>
 
-		<form method="post" action="options.php" class="lg-form">
+		<form id="logliy-settings-form" method="post" action="options.php" class="lg-form">
 			<?php settings_fields( 'logliy_group' ); ?>
 			<input type="hidden" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[_logliy_form]" value="1" />
 			<input type="hidden" name="logliy_active_tab" value="<?php echo esc_attr( $tab ); ?>" />
-			<?php logliy_render_save_button( 'lg-save-btn--top' ); ?>
 
 			<?php if ( $tab === 'general' ) : ?>
 			<div class="lg-card">
@@ -594,18 +608,14 @@ function logliy_settings_page(): void {
 					</tr>
 				</table>
 			</div>
+			<?php elseif ( $tab === 'security' ) : ?>
+			<div class="lg-card"><h2><?php echo esc_html__( 'Security and notifications', 'logliy' ); ?></h2><?php logliy_security_settings_fields( $s ); ?></div>
 			<?php elseif ( $tab === 'email_otp' ) : ?>
 			<div class="lg-card">
-				<h2><?php echo esc_html__( 'Email code settings', 'logliy' ); ?></h2>
+				<h2><?php echo esc_html__( 'General email settings', 'logliy' ); ?></h2>
+				<p class="description"><?php echo esc_html__( 'These access rules and request limits apply to both Email Code and Magic Link.', 'logliy' ); ?></p>
+				<?php logliy_email_policy_fields( $s ); ?>
 				<table class="form-table lg-form-table" role="presentation">
-					<tr>
-						<th><label for="otp_ttl_minutes"><?php echo esc_html__( 'Code lifetime (minutes)', 'logliy' ); ?></label></th>
-						<td><input type="number" min="1" max="60" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[otp_ttl_minutes]" id="otp_ttl_minutes" value="<?php echo esc_attr( (string) $s['otp_ttl_minutes'] ); ?>" class="small-text" /></td>
-					</tr>
-					<tr>
-						<th><label for="otp_length"><?php echo esc_html__( 'Code length', 'logliy' ); ?></label></th>
-						<td><input type="number" min="4" max="8" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[otp_length]" id="otp_length" value="<?php echo esc_attr( (string) $s['otp_length'] ); ?>" class="small-text" /></td>
-					</tr>
 					<tr>
 						<th><label for="otp_rate_limit_account"><?php echo esc_html__( 'Max requests / account', 'logliy' ); ?></label></th>
 						<td><input type="number" min="1" max="50" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[otp_rate_limit_account]" id="otp_rate_limit_account" value="<?php echo esc_attr( (string) $s['otp_rate_limit_account'] ); ?>" class="small-text" /></td>
@@ -628,6 +638,20 @@ function logliy_settings_page(): void {
 				</table>
 			</div>
 			<div class="lg-card">
+				<h2><?php echo esc_html__( 'Email code settings', 'logliy' ); ?></h2>
+				<table class="form-table lg-form-table" role="presentation">
+					<tr>
+						<th><label for="otp_ttl_minutes"><?php echo esc_html__( 'Code lifetime (minutes)', 'logliy' ); ?></label></th>
+						<td><input type="number" min="1" max="60" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[otp_ttl_minutes]" id="otp_ttl_minutes" value="<?php echo esc_attr( (string) $s['otp_ttl_minutes'] ); ?>" class="small-text" /></td>
+					</tr>
+					<tr>
+						<th><label for="otp_length"><?php echo esc_html__( 'Code length', 'logliy' ); ?></label></th>
+						<td><input type="number" min="4" max="8" name="<?php echo esc_attr( LOGLIY_OPT_SETTINGS ); ?>[otp_length]" id="otp_length" value="<?php echo esc_attr( (string) $s['otp_length'] ); ?>" class="small-text" /></td>
+					</tr>
+
+				</table>
+			</div>
+			<div class="lg-card">
 				<h2><?php echo esc_html__( 'Magic link', 'logliy' ); ?></h2>
 				<table class="form-table lg-form-table" role="presentation">
 					<tr>
@@ -640,6 +664,7 @@ function logliy_settings_page(): void {
 			<div class="lg-card">
 				<h2><?php echo esc_html__( 'SSO (OpenID Connect)', 'logliy' ); ?></h2>
 				<p class="description"><?php echo esc_html__( 'Authorization Code flow with PKCE. The SSO tab on the login form appears only when SSO is enabled and Issuer, Client ID, and Client Secret are filled in.', 'logliy' ); ?></p>
+				<?php logliy_sso_policy_fields( $s ); ?>
 				<?php if ( ! empty( $s['enable_oidc'] ) && ! logliy_oidc_is_ready() ) : ?>
 					<p class="notice notice-warning" style="margin:12px 0 0;padding:8px 12px;"><?php echo esc_html__( 'SSO is enabled, but it will stay hidden on the login form until Issuer, Client ID, and Client Secret are set.', 'logliy' ); ?></p>
 				<?php endif; ?>
@@ -834,15 +859,7 @@ function logliy_settings_page(): void {
 			<?php
 			// Preserve values from other tabs so unchecked tabs don't wipe settings.
 			$preserve = $s;
-			$tab_keys = array(
-				'general'     => array( 'enable_passkey', 'enable_email_otp', 'enable_magic_link', 'allow_password_login', 'allow_xmlrpc_password', 'password_allowed_roles', 'hide_wp_login_password', 'onboarding_dismissed', 'login_brand_name', 'login_tagline', 'login_logo_id', 'auto_remember', 'login_identifier', 'hide_language_switcher', 'delete_settings_on_uninstall', 'hide_back_to_blog', 'hide_lost_password', 'login_bg_color', 'login_bg_image_id', 'login_footer_text' ),
-				'redirects'   => array( 'redirect_login_default', 'redirect_logout_default', 'redirect_login_roles', 'redirect_logout_roles' ),
-				'passkeys'    => array( 'passkey_uv', 'passkey_resident_key' ),
-				'email_otp'   => array( 'otp_ttl_minutes', 'otp_length', 'otp_rate_limit_account', 'otp_rate_limit_ip', 'otp_rate_window_minutes', 'email_request_cooldown_seconds', 'magic_link_ttl_minutes' ),
-				'sso'         => array( 'enable_oidc', 'oidc_issuer', 'oidc_client_id', 'oidc_client_secret', 'oidc_button_label', 'oidc_create_users' ),
-				'woocommerce' => array( 'wc_enable_myaccount', 'wc_enable_checkout', 'wc_enable_blocks' ),
-				'advanced'    => array( 'rp_id', 'rp_name', 'related_origins', 'enable_custom_login_url', 'custom_login_slug', 'session_expire_hours', 'session_remember_days', 'admin_idle_timeout_minutes' ),
-			);
+			$tab_keys = logliy_settings_tab_keys();
 			$active_keys = $tab_keys[ $tab ] ?? array();
 			foreach ( $preserve as $pkey => $pval ) {
 				if ( $pkey === 'login_custom_css' || $pkey === 'oidc_client_secret' ) {
@@ -879,12 +896,18 @@ function logliy_settings_page(): void {
 			}
 			?>
 
-			<?php logliy_render_save_button( 'lg-save-btn--bottom' ); ?>
 		</form>
 
 		<?php if ( $tab === 'advanced' ) : ?>
 			<?php logliy_render_import_export_card(); ?>
 		<?php endif; ?>
+		<?php endif; ?>
+		</div>
+		<div class="lg-promotions">
+			<?php logliy_render_servermetry_promotion(); ?>
+			<?php logliy_render_cookiepeak_promotion(); ?>
+		</div>
+		</div>
 
 		<p class="lg-footer"><?php echo esc_html__( 'Logliy by FloBa Media.', 'logliy' ); ?></p>
 	</div>
@@ -902,4 +925,41 @@ function logliy_plugin_action_links( array $links ): array {
 	$url = admin_url( 'options-general.php?page=' . LOGLIY_ADMIN_PAGE );
 	array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Settings', 'logliy' ) . '</a>' );
 	return $links;
+}
+
+/** Promotion confined to the plugin settings, with locally bundled branding. */
+function logliy_render_servermetry_promotion(): void {
+	?>
+	<aside class="lg-promotion" aria-labelledby="logliy-servermetry-title">
+		<p class="lg-promotion-label"><?php echo esc_html__( 'Advertisement', 'logliy' ); ?></p>
+		<img class="lg-promotion-logo" src="<?php echo esc_url( LOGLIY_PLUGIN_URL . 'assets/servermetry-logo.svg' ); ?>" alt="ServerMetry" width="220" height="40" />
+		<h2 id="logliy-servermetry-title"><?php echo esc_html__( 'Keep an eye on your infrastructure.', 'logliy' ); ?></h2>
+		<p><?php echo esc_html__( 'Monitor server metrics, website availability and incidents in one place.', 'logliy' ); ?></p>
+		<a class="lg-promotion-link" href="https://servermetry.com/" target="_blank" rel="noopener noreferrer sponsored">
+			<?php echo esc_html__( 'Explore ServerMetry', 'logliy' ); ?>
+			<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'logliy' ); ?></span>
+		</a>
+		<p class="lg-promotion-domain">servermetry.com</p>
+	</aside>
+	<?php
+}
+
+/** CookiePeak promotion below ServerMetry; no remote assets are loaded. */
+function logliy_render_cookiepeak_promotion(): void {
+	?>
+	<aside class="lg-promotion lg-promotion--cookiepeak" aria-labelledby="logliy-cookiepeak-title">
+		<p class="lg-promotion-label"><?php echo esc_html__( 'Advertisement', 'logliy' ); ?></p>
+		<div class="lg-promotion-brand">
+			<img src="<?php echo esc_url( LOGLIY_PLUGIN_URL . 'assets/cookiepeak-logo.svg' ); ?>" alt="" width="40" height="40" />
+			<strong>CookiePeak</strong>
+		</div>
+		<h2 id="logliy-cookiepeak-title"><?php echo esc_html__( 'Cookie consent for your website.', 'logliy' ); ?></h2>
+		<p><?php echo esc_html__( 'Create a custom consent banner, block trackers before consent and keep consent records.', 'logliy' ); ?></p>
+		<a class="lg-promotion-link" href="https://cookiepeak.com/" target="_blank" rel="noopener noreferrer sponsored">
+			<?php echo esc_html__( 'Explore CookiePeak', 'logliy' ); ?>
+			<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'logliy' ); ?></span>
+		</a>
+		<p class="lg-promotion-domain">cookiepeak.com</p>
+	</aside>
+	<?php
 }

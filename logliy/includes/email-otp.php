@@ -16,33 +16,15 @@ function logliy_otp_hash( string $code, int $user_id ): string {
 }
 
 /**
- * Constant-time OTP check. Accepts legacy hashes briefly (bcrypt / unbound HMAC).
- */
-function logliy_otp_hash_equals( string $code, string $stored, int $user_id ): bool {
-	if ( $stored === '' ) {
-		return false;
-	}
-	// Legacy bcrypt/phpass from earlier releases (OTP TTL is minutes — rare).
-	if ( str_starts_with( $stored, '$P$' ) || str_starts_with( $stored, '$2y$' ) || str_starts_with( $stored, '$wp$' ) ) {
-		return wp_check_password( $code, $stored );
-	}
-	if ( hash_equals( $stored, logliy_otp_hash( $code, $user_id ) ) ) {
-		return true;
-	}
-	// Legacy unbound HMAC from 0.0.4 (same TTL window).
-	$legacy = hash_hmac( 'sha256', $code, wp_salt( 'auth' ) );
-	return hash_equals( $stored, $legacy );
-}
-
-/**
  * Uniform public OTP request response (no account enumeration).
  *
  * @return array{ok:bool,message:string}
  */
 function logliy_otp_public_request_response(): array {
 	return array(
+		'cooldown' => (int) logliy_get_setting( 'email_request_cooldown_seconds', 60 ),
 		'ok'      => true,
-		'message' => __( 'If an account exists, a login code has been sent.', 'logliy' ),
+		'message' => __( 'If this address is eligible for login, a login code has been sent.', 'logliy' ),
 	);
 }
 
@@ -59,7 +41,7 @@ function logliy_otp_resolve_user( string $login ) {
 	$user = logliy_resolve_login_user( $login );
 	if ( ! $user instanceof WP_User ) {
 		// Soft miss — same shape as a successful send.
-		return new WP_Error( 'logliy_otp_sent', __( 'If an account exists, a login code has been sent.', 'logliy' ), array( 'status' => 200, 'soft' => true ) );
+		return new WP_Error( 'logliy_otp_sent', __( 'If this address is eligible for login, a login code has been sent.', 'logliy' ), array( 'status' => 200, 'soft' => true ) );
 	}
 	return $user;
 }
@@ -80,7 +62,6 @@ function logliy_otp_request( string $login ) {
 
 	$window  = (int) logliy_get_setting( 'otp_rate_window_minutes', 15 ) * MINUTE_IN_SECONDS;
 	$ip_lim  = (int) logliy_get_setting( 'otp_rate_limit_ip', 20 );
-	$acc_lim = (int) logliy_get_setting( 'otp_rate_limit_account', 5 );
 	$ip      = logliy_client_ip();
 
 	// Shared cooldown for OTP + Magic Link (per IP) — blocks spam clicks.
@@ -89,7 +70,7 @@ function logliy_otp_request( string $login ) {
 		return $cd_ip;
 	}
 
-	$ip_check = logliy_rate_limit_hit( 'otp_ip_' . $ip, $ip_lim, $window );
+	$ip_check = logliy_rate_limit_hit( 'email_ip_' . $ip, $ip_lim, $window );
 	if ( is_wp_error( $ip_check ) ) {
 		return $ip_check;
 	}
@@ -103,14 +84,11 @@ function logliy_otp_request( string $login ) {
 		return $user;
 	}
 
-	$cd_user = logliy_email_request_cooldown( 'email_user_' . $user->ID );
-	if ( is_wp_error( $cd_user ) ) {
-		// Same shape as unknown account — no enumeration via cooldown.
+	if ( ! logliy_email_login_allowed( $user ) ) {
+		logliy_security_event( 'email_denied', (int) $user->ID );
 		return logliy_otp_public_request_response();
 	}
-
-	$acc_check = logliy_rate_limit_hit( 'otp_user_' . $user->ID, $acc_lim, $window );
-	if ( is_wp_error( $acc_check ) ) {
+	if ( is_wp_error( logliy_email_account_limit( $user ) ) ) {
 		return logliy_otp_public_request_response();
 	}
 
@@ -119,20 +97,18 @@ function logliy_otp_request( string $login ) {
 	$code   = str_pad( (string) random_int( 0, $max ), $length, '0', STR_PAD_LEFT );
 	$ttl    = (int) logliy_get_setting( 'otp_ttl_minutes', 10 ) * MINUTE_IN_SECONDS;
 
-	$payload = array(
-		'user_id' => (int) $user->ID,
-		'hash'    => logliy_otp_hash( $code, (int) $user->ID ),
-		'tries'   => 0,
-		'ip'      => $ip,
-	);
-	set_transient( 'logliy_otp_' . $user->ID, $payload, $ttl );
-
-	$sent = logliy_otp_send_email( $user, $code );
-	if ( is_wp_error( $sent ) ) {
-		delete_transient( 'logliy_otp_' . $user->ID );
+	$hash = logliy_otp_hash( $code, (int) $user->ID );
+	if ( ! logliy_email_challenge_store( $user, 'otp', $hash, $ttl ) ) {
 		return logliy_otp_public_request_response();
 	}
 
+	$sent = logliy_otp_send_email( $user, $code );
+	if ( is_wp_error( $sent ) ) {
+		logliy_email_challenge_delete( (int) $user->ID, 'otp', $hash );
+		return logliy_otp_public_request_response();
+	}
+
+	logliy_security_event( 'email_code_sent', (int) $user->ID );
 	$cooldown = (int) logliy_get_setting( 'email_request_cooldown_seconds', 60 );
 	$resp     = logliy_otp_public_request_response();
 	$resp['cooldown'] = $cooldown;
@@ -198,31 +174,19 @@ function logliy_otp_verify( string $login, string $code, bool $remember = false,
 
 	if ( ! $user instanceof WP_User ) {
 		logliy_fire_login_failed( $login, __( 'Invalid login code.', 'logliy' ) );
-		return new WP_Error( 'logliy_otp_invalid', __( 'Invalid login code.', 'logliy' ), array( 'status' => 401 ) );
+		return new WP_Error( 'logliy_otp_invalid', __( 'Login code invalid or expired. Please request a new one.', 'logliy' ), array( 'status' => 401 ) );
 	}
 
-	$payload = get_transient( 'logliy_otp_' . $user->ID );
-	if ( ! is_array( $payload ) || empty( $payload['hash'] ) ) {
-		logliy_fire_login_failed( $user->user_login, __( 'Login code expired. Please request a new one.', 'logliy' ) );
-		return new WP_Error( 'logliy_otp_expired', __( 'Login code expired. Please request a new one.', 'logliy' ), array( 'status' => 401 ) );
+	$payload = logliy_email_challenge_get( 'otp', (int) $user->ID );
+	if ( ! logliy_email_login_allowed( $user ) || ! $payload || ! logliy_email_challenge_attempt( $user, $payload ) ) {
+		logliy_fire_login_failed( $user->user_login );
+		return new WP_Error( 'logliy_otp_invalid', __( 'Login code invalid or expired. Please request a new one.', 'logliy' ), array( 'status' => 401 ) );
 	}
-
-	$tries = (int) ( $payload['tries'] ?? 0 );
-	if ( $tries >= 5 ) {
-		delete_transient( 'logliy_otp_' . $user->ID );
-		logliy_fire_login_failed( $user->user_login, __( 'Too many invalid code attempts.', 'logliy' ) );
-		return new WP_Error( 'logliy_otp_locked', __( 'Too many invalid code attempts. Please request a new code.', 'logliy' ), array( 'status' => 429 ) );
+	if ( ! hash_equals( (string) $payload['token_hash'], logliy_otp_hash( $code, (int) $user->ID ) )
+		|| ! logliy_email_challenge_consume( $user, $payload ) ) {
+		logliy_fire_login_failed( $user->user_login );
+		return new WP_Error( 'logliy_otp_invalid', __( 'Login code invalid or expired. Please request a new one.', 'logliy' ), array( 'status' => 401 ) );
 	}
-
-	if ( ! logliy_otp_hash_equals( $code, (string) $payload['hash'], (int) $user->ID ) ) {
-		$payload['tries'] = $tries + 1;
-		$ttl              = (int) logliy_get_setting( 'otp_ttl_minutes', 10 ) * MINUTE_IN_SECONDS;
-		set_transient( 'logliy_otp_' . $user->ID, $payload, $ttl );
-		logliy_fire_login_failed( $user->user_login, __( 'Invalid login code.', 'logliy' ) );
-		return new WP_Error( 'logliy_otp_invalid', __( 'Invalid login code.', 'logliy' ), array( 'status' => 401 ) );
-	}
-
-	delete_transient( 'logliy_otp_' . $user->ID );
 
 	if ( $redirect_to !== '' ) {
 		$_REQUEST['redirect_to'] = $redirect_to;

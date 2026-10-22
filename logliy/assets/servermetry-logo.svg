@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 40" fill="none" role="img" aria-label="ServerMetry">
+  <rect width="32" height="32" y="4" rx="4" fill="#26323d"/>
+  <rect x="1" y="5" width="30" height="30" rx="3" stroke="#5b8cff" stroke-opacity="0.45"/>
+  <path
+    d="M6 26L10 20L14 23.5L18 17L22 21L26 15"
+    stroke="#f5f0e6"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="10" cy="20" r="1.5" fill="#5b8cff"/>
+  <circle cx="18" cy="17" r="1.5" fill="#5b8cff"/>
+  <text
+    x="44"
+    y="27"
+    font-family="Barlow Condensed, Arial Narrow, Helvetica Neue, sans-serif"
+    font-size="22"
+    font-weight="600"
+    letter-spacing="0.04em"
+  >
+    <tspan fill="#ffffff">SERVER</tspan><tspan fill="#75a7ff">METRY</tspan>
+  </text>
+</svg>

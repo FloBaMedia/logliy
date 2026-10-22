@@ -52,11 +52,11 @@ node build.mjs
 
 Outputs (gitignored under `dist/` and repo root):
 
-- `dist/logliy-0.1.1.zip` — versioned release (version from `logliy.php`)
+- `dist/logliy-0.2.0.zip` — versioned release (version from `logliy.php`)
 - `dist/logliy-wordpress.zip` — stable alias (always latest build)
 - `dist/logliy-wordpress.version` — sidecar with the version string
 
-In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.1.1.zip`.
+In WordPress: **Plugins → Install plugin → Upload** → `logliy-0.2.0.zip`.
 
 ## Develop
 
@@ -71,3 +71,17 @@ composer install
 ```php
 define( 'LOGLIY_ALLOW_PASSWORD', true );
 ```
+
+## Security settings (0.2.0)
+
+- **Email → General email settings:** optional domain/address/local-part wildcard allowlist; common
+  account/IP budgets for Code and Magic Link; configurable site-wide email cap.
+- **SSO:** separate email rules, verified email and signed group/role restrictions.
+- **Security / Security log:** opt-in notifications and a capped local event log
+  with configurable retention. Notifications remain independent of log storage.
+- **Profile:** revoke individual sessions or all sessions (including for another
+  account when permitted). Custom session stores support revoking all sessions.
+
+Upgrade: request fresh codes/links after installing 0.2.0. SSO requires boolean
+`email_verified: true` by default; review this option for your trusted provider.
+See [regression checks and staging smoke tests](tests/README.md).
